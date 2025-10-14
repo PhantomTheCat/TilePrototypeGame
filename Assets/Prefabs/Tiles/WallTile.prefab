@@ -94,6 +94,11 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7080635168851572746, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
   m_PrefabInstance: {fileID: 4642680096144363459}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4563958343354138993 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9167203612608941746, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
+  m_PrefabInstance: {fileID: 4642680096144363459}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &9074836806597978900 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4440081998859445463, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
@@ -113,5 +118,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spriteRenderer: {fileID: 107804527512080764}
   highlightGO: {fileID: 2462735453472634825}
+  rangeIndicatorGO: {fileID: 4563958343354138993}
+  moveIndicatorGO: {fileID: 0}
   isWalkable: 0
   OccupiedUnit: {fileID: 0}

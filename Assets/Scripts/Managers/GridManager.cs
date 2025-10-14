@@ -34,6 +34,9 @@ public class GridManager : MonoBehaviour
         if (mainCamera == null) { mainCamera = Camera.main.transform; }
     }
 
+    /// <summary>
+    /// Generates the grid of tiles based on the specified width and height.
+    /// </summary>
     public void GenerateGrid()
     {
         for (int x = 0; x < width; x++)
@@ -100,5 +103,28 @@ public class GridManager : MonoBehaviour
 
         //Adding the tile to the dictionary
         tiles[new Vector2(x, y)] = spawnedTile.GetComponent<BaseTile>();
+    }
+
+    /// <summary>
+    /// Highlights all tiles that are walkable for the SelectedHero and within its movement range.
+    /// </summary>
+    public void HighlightHeroTiles()
+    {
+        if (UnitManager.Instance.SelectedHero == null) { return; }
+
+        ClearAllHighlights();
+        List<BaseTile> heroesTiles = UnitManager.Instance.SelectedHero.GetMovementRange();
+        foreach (BaseTile tile in heroesTiles)
+        {
+            tile.ShowInRange(true);
+        }
+    }
+
+    public void ClearAllHighlights()
+    {
+        foreach (BaseTile tile in tiles.Values)
+        {
+            tile.ShowInRange(false);
+        }
     }
 }

@@ -16,17 +16,19 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
     [Header("General")]
     [SerializeField] protected SpriteRenderer spriteRenderer;
     [SerializeField] protected GameObject highlightGO;
+    [SerializeField] protected GameObject rangeIndicatorGO;
+    //[SerializeField] protected GameObject moveIndicatorGO;
     [SerializeField] protected bool isWalkable = true;
     public BaseUnit OccupiedUnit;
 
 
     [Header("Pathfinding")] //Using A* pathfinding
-    public List<BaseTile> Neighbors { get; protected set; }
-    public BaseTile Connection { get; private set; }
-    public int G { get; private set; } // Cost from start node
-    public int H { get; private set; } // Heuristic cost to end node
-    public int F => G + H; // Total cost
-    public ICoords Coords;
+    [HideInInspector] public List<BaseTile> Neighbors { get; protected set; }
+    [HideInInspector] public BaseTile Connection { get; private set; }
+    [HideInInspector] public int G { get; private set; } // Cost from start node
+    [HideInInspector] public int H { get; private set; } // Heuristic cost to end node
+    [HideInInspector] public int F => G + H; // Total cost
+    [HideInInspector] public ICoords Coords;
     private static readonly List<Vector2> Dirs = new List<Vector2>() {
             new Vector2(0, 1), new Vector2(-1, 0), new Vector2(0, -1), new Vector2(1, 0),
         };
@@ -35,6 +37,7 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
 
 
     //Methods
+    #region Pathfinding
     public bool Walkable => isWalkable && OccupiedUnit == null;
 
     public float GetDistance(BaseTile other) => Coords.GetDistance(other.Coords);
@@ -75,15 +78,22 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
             Neighbors.Add(tile);
         }
     }
+    #endregion
 
+
+
+    #region Pointer Events
     public void OnPointerEnter(PointerEventData eventData)
     {
         highlightGO.SetActive(true);
+
+        CheckForArrowPath();
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
         highlightGO.SetActive(false);
+        LineManager.Instance.ClearLine();
     }
 
     public void OnPointerDown(PointerEventData eventData)
@@ -112,6 +122,51 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
             //Checking path to this tile and selecting it if valid
             UnitManager.Instance.SelectedHero.CheckPath(this);
         }
+    }
+    #endregion
+
+    public void ShowInRange(bool show)
+    {
+        if (show)
+        {
+            rangeIndicatorGO.SetActive(true);
+        }
+        else
+        {
+            rangeIndicatorGO.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// Seeing if the arrow path should be shown to this tile
+    /// </summary>
+    protected void CheckForArrowPath()
+    {
+        //Conditions for getting the arrow along the path to this tile
+        if (GameManager.Instance.GameState != GameState.HERO_TURN) { return; }
+        if (!Walkable) { return; }
+        if (UnitManager.Instance.SelectedHero == null) { return; }
+        if (UnitManager.Instance.SelectedHero.MoveState == BaseUnit.UnitState.MOVING) { return; }
+        if (!UnitManager.Instance.SelectedHero.GetMovementRange().Contains(this)) { return; }
+
+        BaseTile startTile = UnitManager.Instance.SelectedHero.OccupiedTile;
+        List<BaseTile> path = UnitManager.Instance.SelectedHero.GetPath(startTile, this);
+        if (path == null) { return; }
+
+        //Getting the direction of the first tile in the path
+        Vector2 firstDir = Vector2.zero;
+
+        foreach (Vector2 dir in Dirs)
+        {
+            if (startTile.Coords.Pos + dir == path[0].Coords.Pos)
+            {
+                firstDir = dir;
+            }
+        }
+
+        if (firstDir == Vector2.zero) { return; }
+
+        LineManager.Instance.DrawLine(path, startTile, firstDir);
     }
 
     protected void CheckIntentionForEnemy()

@@ -103,6 +103,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spriteRenderer: {fileID: 5303766401532401282}
   highlightGO: {fileID: 7694778248219848759}
+  rangeIndicatorGO: {fileID: 8625047745884391055}
+  moveIndicatorGO: {fileID: 0}
   isWalkable: 1
   OccupiedUnit: {fileID: 0}
   baseColor: {r: 0.735849, g: 0.735849, b: 0.735849, a: 1}
@@ -115,5 +117,10 @@ SpriteRenderer:
 --- !u!1 &7694778248219848759 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7080635168851572746, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
+  m_PrefabInstance: {fileID: 615339653532403773}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8625047745884391055 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9167203612608941746, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
   m_PrefabInstance: {fileID: 615339653532403773}
   m_PrefabAsset: {fileID: 0}

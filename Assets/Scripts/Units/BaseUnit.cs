@@ -15,6 +15,7 @@ public class BaseUnit : MonoBehaviour
     public UnitState MoveState = UnitState.IDLE;
 
     [Header("Stats")]
+    [SerializeField] protected int moveRange = 5;
     [SerializeField] protected int maxHealth = 100;
     [SerializeField] protected int currentHealth = 100;
 
@@ -53,6 +54,11 @@ public class BaseUnit : MonoBehaviour
                     MoveState = UnitState.IDLE;
                     currentPath = null;
                     currentPathIndex = 0;
+
+                    if (FactionType == Faction.HERO)
+                    {
+                        GridManager.Instance.HighlightHeroTiles();
+                    }
                 }
             }
         }
@@ -82,8 +88,25 @@ public class BaseUnit : MonoBehaviour
         //TODO: Implement death logic here
     }
 
+
+    #region Pathfinding
+    /// <summary>
+    /// Validates the path to the specified target tile and initiates movement if the path is valid.
+    /// </summary>
+    /// <remarks>If the target tile is not walkable, or if no valid path to the target tile exists,  the
+    /// method logs a warning and does not initiate movement. When a valid path is found,  the unit's state is set to
+    /// <see cref="UnitState.MOVING"/> and the movement path is updated.</remarks>
+    /// <param name="targetTile">The target tile to which the path is being checked. Must be walkable.</param>
     public virtual void CheckPath(BaseTile targetTile)
     {
+        //Getting the movement range
+        List<BaseTile> movementRange = GetMovementRange();
+        if (!movementRange.Contains(targetTile))
+        {
+            Debug.Log("Target tile is out of movement range!");
+            return;
+        }
+
         //Making sure the target tile is walkable
         if (!targetTile.Walkable)
         {
@@ -101,10 +124,17 @@ public class BaseUnit : MonoBehaviour
 
         //Moving the unit along the path
         MoveState = UnitState.MOVING;
+        LineManager.Instance.ClearLine();
         currentPath = path;
     }
 
-    public static List<BaseTile> GetPath(BaseTile start, BaseTile end)
+    /// <summary>
+    /// Gets Path from start tile to end tile using A* pathfinding algorithm
+    /// </summary>
+    /// <param name="start"></param>
+    /// <param name="end"></param>
+    /// <returns></returns>
+    public List<BaseTile> GetPath(BaseTile start, BaseTile end)
     {
         List<BaseTile> tilesToSearch = new List<BaseTile>() { start };
         List<BaseTile> tilesProcessed = new List<BaseTile>();
@@ -158,10 +188,67 @@ public class BaseUnit : MonoBehaviour
         }
 
         //No path found
-        Debug.LogWarning("No path found!");
         return null;
     }
 
+    /// <summary>
+    /// Gets a list of all tiles that are within the unit's movement range
+    /// </summary>
+    /// <returns></returns>
+    public List<BaseTile> GetMovementRange()
+    {
+        List<BaseTile> reachableTiles = new List<BaseTile>();
+
+        //Getting all the tiles within positive movement range
+        for (int x = -moveRange; x <= moveRange; x++)
+        {
+            for (int y = -moveRange; y <= moveRange; y++)
+            {
+                BaseTile tile = CheckTileReachable(x, y);
+
+                if (tile != null && tile.Walkable && !reachableTiles.Contains(tile))
+                {
+                    reachableTiles.Add(tile);
+                }
+            }
+        }
+
+        if (reachableTiles.Contains(OccupiedTile))
+        {
+            reachableTiles.Remove(OccupiedTile);
+        }
+
+        //Making sure all tiles are actually reachable via pathfinding
+        foreach (BaseTile tile in reachableTiles.ToList())
+        {
+            List<BaseTile> path = GetPath(OccupiedTile, tile);
+            if (path == null || path.Count > moveRange)
+            {
+                reachableTiles.Remove(tile);
+            }
+        }
+
+        return reachableTiles;
+    }
+
+    /// <summary>
+    /// Checking if a tile at the given offset from the unit's current position is reachable
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
+    private BaseTile CheckTileReachable(int x, int y)
+    {
+        return GridManager.Instance.GetTileAtPosition(new Vector2(OccupiedTile.Coords.Pos.x + x, OccupiedTile.Coords.Pos.y + y));
+    }
+    #endregion
+
+    /// <summary>
+    /// Represents the various states that a unit can be in during its lifecycle.
+    /// </summary>
+    /// <remarks>This enumeration defines the possible states of a unit, such as being idle, moving,
+    /// attacking, or dead.  The state can be used to determine the current behavior or activity of the unit in a game
+    /// or simulation.</remarks>
     public enum UnitState
     {
         IDLE = 0,

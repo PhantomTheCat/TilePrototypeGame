@@ -1,5 +1,9 @@
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class UIManager : MonoBehaviour
 {
@@ -19,5 +23,6 @@ public class UIManager : MonoBehaviour
     public void UpdateSelectedHeroUI(BaseHero hero)
     {
         SelectedHeroText.text = hero != null ? $"{hero.UnitName}" : "N/A";
+        GridManager.Instance.HighlightHeroTiles();
     }
 }
