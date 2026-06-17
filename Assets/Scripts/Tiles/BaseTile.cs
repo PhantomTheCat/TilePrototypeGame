@@ -17,7 +17,7 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
     [SerializeField] protected SpriteRenderer spriteRenderer;
     [SerializeField] protected GameObject highlightGO;
     [SerializeField] protected GameObject rangeIndicatorGO;
-    //[SerializeField] protected GameObject moveIndicatorGO;
+    [SerializeField] protected GameObject attackIndicatorGO;
     [SerializeField] protected bool isWalkable = true;
     public BaseUnit OccupiedUnit;
 
@@ -29,16 +29,13 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
     [HideInInspector] public int H { get; private set; } // Heuristic cost to end node
     [HideInInspector] public int F => G + H; // Total cost
     [HideInInspector] public ICoords Coords;
-    private static readonly List<Vector2> Dirs = new List<Vector2>() {
-            new Vector2(0, 1), new Vector2(-1, 0), new Vector2(0, -1), new Vector2(1, 0),
+    [HideInInspector] public static readonly List<Vector2Int> Dirs = new List<Vector2Int>() {
+            new Vector2Int(0, 1), new Vector2Int(-1, 0), new Vector2Int(0, -1), new Vector2Int(1, 0),
         };
-
-
-
 
     //Methods
     #region Pathfinding
-    public bool Walkable => isWalkable && OccupiedUnit == null;
+    public virtual bool Walkable => isWalkable && OccupiedUnit == null;
 
     public float GetDistance(BaseTile other) => Coords.GetDistance(other.Coords);
 
@@ -68,7 +65,7 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
 
     public void SetH(int h) => H = h;
 
-    public void FindNeighbors(List<BaseTile> allTiles, int gridWidth, int gridHeight)
+    public void FindNeighbors()
     {
         Neighbors = new List<BaseTile>();
 
@@ -81,18 +78,28 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
     #endregion
 
 
-
     #region Pointer Events
     public void OnPointerEnter(PointerEventData eventData)
     {
-        highlightGO.SetActive(true);
-
-        CheckForArrowPath();
+        if (UnitManager.Instance.SelectedHero.MoveState == BaseUnit.UnitState.IDLE && this is not WallTile)
+        {
+            highlightGO.SetActive(true);
+            CheckForArrowPath();
+        }
+        else if (UnitManager.Instance.SelectedHero.MoveState == BaseUnit.UnitState.USING_ACTION)
+        {
+            BaseHero selectedHero = UnitManager.Instance.SelectedHero;
+            if (selectedHero.CurrentAction.GetActionTiles(selectedHero).Contains(this))
+            {
+                attackIndicatorGO.SetActive(true);
+            }
+        }
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
         highlightGO.SetActive(false);
+        attackIndicatorGO.SetActive(false);
         LineManager.Instance.ClearLine();
     }
 
@@ -101,32 +108,42 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
         //Making sure it's the hero turn
         if (GameManager.Instance.GameState != GameState.HERO_TURN) { return; }
 
-        if (OccupiedUnit != null)
+        BaseHero selectedHero = UnitManager.Instance.SelectedHero;
+
+        if (selectedHero.MoveState == BaseUnit.UnitState.IDLE)
         {
-            //Seeing if clicking on a hero or enemy
-            if (OccupiedUnit.FactionType == Faction.HERO)
+            if (OccupiedUnit != null)
             {
-                UnitManager.Instance.ChangeSelectedHero(OccupiedUnit as BaseHero);
+                //Seeing if clicking on a hero or enemy
+                if (OccupiedUnit.FactionType == Faction.HERO)
+                {
+                    UnitManager.Instance.ChangeSelectedHero(OccupiedUnit as BaseHero);
+                }
+                else if (OccupiedUnit.FactionType == Faction.ENEMY)
+                {
+                    CheckIntentionForEnemy();
+                }
             }
-            else if (OccupiedUnit.FactionType == Faction.ENEMY)
+
+            if (Walkable)
             {
-                CheckIntentionForEnemy();
+                //Checking path to this tile and selecting it if valid
+                UnitManager.Instance.SelectedHero.CheckPath(this);
             }
         }
-
-        if (Walkable)
+        else if (selectedHero.MoveState == BaseUnit.UnitState.USING_ACTION)
         {
-            //Making sure the selected hero isn't already moving
-            if (UnitManager.Instance.SelectedHero.MoveState == BaseUnit.UnitState.MOVING) { return; }
-
-            //Checking path to this tile and selecting it if valid
-            UnitManager.Instance.SelectedHero.CheckPath(this);
+            if (selectedHero.CurrentAction.GetActionTiles(selectedHero).Contains(this))
+            {
+                selectedHero.CurrentAction.Execute(selectedHero, OccupiedUnit);
+            }
         }
     }
     #endregion
 
     public void ShowInRange(bool show)
     {
+        attackIndicatorGO.SetActive(false);
         if (show)
         {
             rangeIndicatorGO.SetActive(true);
@@ -188,5 +205,5 @@ public struct ICoords
 
         return lowest * 14 + horizontalMovesRequired * 10;
     }
-    public Vector2 Pos { get; set; }
+    public Vector2Int Pos { get; set; }
 }

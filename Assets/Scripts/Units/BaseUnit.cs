@@ -13,17 +13,40 @@ public class BaseUnit : MonoBehaviour
     public Faction FactionType;
     public string UnitName;
     public UnitState MoveState = UnitState.IDLE;
+    public Sprite UnitPortrait;
 
     [Header("Stats")]
-    [SerializeField] protected int moveRange = 5;
-    [SerializeField] protected int maxHealth = 100;
-    [SerializeField] protected int currentHealth = 100;
+    public int MoveRange = 5;
+    public int ViewRange = 15;
+    public int MaxHealth = 100;
+    public int MaxMana = 50;
+    public int MaxActionPoint = 5;
+    public int Level = 1;
+    [HideInInspector] public int MoveRangeLeft = 5;
+    [HideInInspector] public int CurrentHealth = 100;
+    [HideInInspector] public int CurrentMana = 50;
+    [HideInInspector] public int CurrentActionPoint = 5;
+
+    [Header("Abilities")]
+    public int Strength = 1;
+    public int Dexterity = 1;
+    public int Constitution = 1;
+    public int Faith = 1;
+    public int Intelligence = 1;
+    public float CritChance = 5f;
+    public int CritMultiplier = 2;
 
     [Header("Pathfinding")]
     public BaseTile OccupiedTile;
     [SerializeField] protected float moveSpeed = 5f;
     private List<BaseTile> currentPath;
     private int currentPathIndex = 0;
+
+    [HideInInspector] public List<BaseAction> Actions;
+    [HideInInspector] public BaseAction CurrentAction;
+
+    public List<BaseItem> Inventory = new List<BaseItem>();
+    [HideInInspector] public int InventorySize = 25;
 
 
     //Methods
@@ -41,10 +64,7 @@ public class BaseUnit : MonoBehaviour
             //If we reached the target tile, move to the next tile in the path
             if (Vector3.Distance(transform.position, targetPosition) < 0.05f)
             {
-                //Setting the occupied tile to the new tile
-                OccupiedTile.OccupiedUnit = null;
-                OccupiedTile = targetTile;
-                targetTile.SetUnit(this);
+                SetNewTile(targetTile);
 
                 currentPathIndex++;
 
@@ -71,23 +91,55 @@ public class BaseUnit : MonoBehaviour
 
     public virtual void TakeDamage(int damage)
     {
-        currentHealth = Mathf.Max(currentHealth - damage, 0);
-        if (currentHealth <= 0)
+        CurrentHealth = Mathf.Max(CurrentHealth - damage, 0);
+        if (CurrentHealth <= 0)
         {
             Die();
         }
+        UIManager.Instance.UpdateCharacterButtons();
     }
 
     public virtual void Heal(int amount)
     {
-        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+        CurrentHealth = Mathf.Min(CurrentHealth + amount, MaxHealth);
+        UIManager.Instance.UpdateCharacterButtons();
     }
 
     public virtual void Die()
     {
-        //TODO: Implement death logic here
+        MoveState = UnitState.DEAD;
+        OccupiedTile.OccupiedUnit = null;
+        OccupiedTile = null;
+        gameObject.SetActive(false);
+
+        Debug.Log($"{UnitName} has died.");
     }
 
+    public virtual void Revive(BaseTile spawnTile)
+    {
+        CurrentHealth = MaxHealth;
+        MoveState = UnitState.IDLE;
+        OccupiedTile = spawnTile;
+        spawnTile.SetUnit(this);
+        gameObject.SetActive(true);
+        Debug.Log($"{UnitName} has been revived.");
+    }
+
+    public void SetActions(List<BaseAction> newActions)
+    {
+        if (newActions == null)
+        {
+            Debug.LogWarning("Actions list cannot be null!");
+            return;
+        }
+        if (newActions.Count > 9)
+        {
+            Debug.LogWarning("Not enough action slots for the new actions!");
+            return;
+        }
+
+        Actions = newActions;
+    }
 
     #region Pathfinding
     /// <summary>
@@ -200,9 +252,9 @@ public class BaseUnit : MonoBehaviour
         List<BaseTile> reachableTiles = new List<BaseTile>();
 
         //Getting all the tiles within positive movement range
-        for (int x = -moveRange; x <= moveRange; x++)
+        for (int x = -MoveRange; x <= MoveRange; x++)
         {
-            for (int y = -moveRange; y <= moveRange; y++)
+            for (int y = -MoveRange; y <= MoveRange; y++)
             {
                 BaseTile tile = CheckTileReachable(x, y);
 
@@ -222,13 +274,29 @@ public class BaseUnit : MonoBehaviour
         foreach (BaseTile tile in reachableTiles.ToList())
         {
             List<BaseTile> path = GetPath(OccupiedTile, tile);
-            if (path == null || path.Count > moveRange)
+            if (path == null || path.Count > MoveRange)
             {
                 reachableTiles.Remove(tile);
             }
         }
 
         return reachableTiles;
+    }
+
+    /// <summary>
+    /// Function for setting a tile as the new occupied tile for this unit
+    /// </summary>
+    /// <param name="tile"></param>
+    protected void SetNewTile(BaseTile tile)
+    {
+        OccupiedTile.OccupiedUnit = null;
+        OccupiedTile = tile;
+        tile.SetUnit(this);
+
+        if (FactionType == Faction.HERO)
+        {
+            GridManager.Instance.UpdateVision();
+        }
     }
 
     /// <summary>
@@ -239,7 +307,7 @@ public class BaseUnit : MonoBehaviour
     /// <returns></returns>
     private BaseTile CheckTileReachable(int x, int y)
     {
-        return GridManager.Instance.GetTileAtPosition(new Vector2(OccupiedTile.Coords.Pos.x + x, OccupiedTile.Coords.Pos.y + y));
+        return GridManager.Instance.GetTileAtPosition(new Vector2Int(OccupiedTile.Coords.Pos.x + x, OccupiedTile.Coords.Pos.y + y));
     }
     #endregion
 
@@ -253,7 +321,7 @@ public class BaseUnit : MonoBehaviour
     {
         IDLE = 0,
         MOVING = 1,
-        ATTACKING = 2,
+        USING_ACTION = 2,
         DEAD = 3
     }
 }

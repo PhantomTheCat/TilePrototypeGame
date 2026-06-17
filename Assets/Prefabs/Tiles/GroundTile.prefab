@@ -12,17 +12,29 @@ PrefabInstance:
       propertyPath: m_Name
       value: GroundTile
       objectReference: {fileID: 0}
+    - target: {fileID: 4440081998859445463, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4688497173149474495, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
       propertyPath: m_Color.b
-      value: 0.34901962
+      value: 0.5471698
       objectReference: {fileID: 0}
     - target: {fileID: 4688497173149474495, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
       propertyPath: m_Color.g
-      value: 0.76470596
+      value: 0.5471698
       objectReference: {fileID: 0}
     - target: {fileID: 4688497173149474495, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
       propertyPath: m_Color.r
-      value: 0.47058827
+      value: 0.5471698
+      objectReference: {fileID: 0}
+    - target: {fileID: 6445223064532164306, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7080635168851572746, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 8526391387980364898, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
       propertyPath: m_Color.b
@@ -35,6 +47,10 @@ PrefabInstance:
     - target: {fileID: 8526391387980364898, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
       propertyPath: m_Color.r
       value: 0.990566
+      objectReference: {fileID: 0}
+    - target: {fileID: 9167203612608941746, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 9167702320282729403, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -104,14 +120,20 @@ MonoBehaviour:
   spriteRenderer: {fileID: 5303766401532401282}
   highlightGO: {fileID: 7694778248219848759}
   rangeIndicatorGO: {fileID: 8625047745884391055}
-  moveIndicatorGO: {fileID: 0}
+  attackIndicatorGO: {fileID: 5906515016359270127}
   isWalkable: 1
   OccupiedUnit: {fileID: 0}
   baseColor: {r: 0.735849, g: 0.735849, b: 0.735849, a: 1}
   offsetColor: {r: 0.5660378, g: 0.5580278, b: 0.5580278, a: 1}
+  mistGO: {fileID: 0}
 --- !u!212 &5303766401532401282 stripped
 SpriteRenderer:
   m_CorrespondingSourceObject: {fileID: 4688497173149474495, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
+  m_PrefabInstance: {fileID: 615339653532403773}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5906515016359270127 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6445223064532164306, guid: a3e3cb7eb5351074dbeb82c0482f12d4, type: 3}
   m_PrefabInstance: {fileID: 615339653532403773}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &7694778248219848759 stripped
