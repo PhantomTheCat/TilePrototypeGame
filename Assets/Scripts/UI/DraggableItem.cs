@@ -32,7 +32,11 @@ public class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (ItemData != null) { UIManager.Instance.ShowInventoryItemDescription(ItemData); }
+        if (ItemData != null) 
+        {
+            UIManager.Instance.ShowInventoryItemDescription(ItemData);
+            UIChestBehavior.Instance.ItemDragged = this;
+        }
         ParentAfterDrag = transform.parent;
         transform.SetParent(transform.root);
         transform.SetAsLastSibling();

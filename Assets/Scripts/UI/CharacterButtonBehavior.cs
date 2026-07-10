@@ -4,9 +4,14 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Image))]
-public class CharacterButtonBehavior : Button, IDropHandler
+[RequireComponent(typeof(Button))]
+public class CharacterButtonBehavior : MonoBehaviour, IDropHandler
 {
     //Properties
+    [Header("UI Elements")]
+    [SerializeField] private GameObject deathBoxObject;
+    [SerializeField] private TextMeshProUGUI healthText;
+
     /// <summary>
     /// Holds which button this in on the panel
     /// </summary>
@@ -15,23 +20,23 @@ public class CharacterButtonBehavior : Button, IDropHandler
     /// Holds the character that is currently tied to this button, if any. This is used to determine which character to select when the button is clicked.
     /// </summary>
     [HideInInspector] public BaseHero tiedCharacter;
+    private Button button;
     private Image portraitImage;
-    private TextMeshProUGUI healthText;
     private bool isActive = false;
 
 
     //Methods
     public void Activate()
     {
-        onClick.AddListener(OnButtonClicked);
+        button = GetComponent<Button>();
+        button.onClick.AddListener(OnButtonClicked);
         portraitImage = GetComponent<Image>();
-        healthText = GetComponentInChildren<TextMeshProUGUI>();
         isActive = true;
     }
 
     private void OnButtonClicked()
     {
-        if (tiedCharacter == null) return;
+        if (tiedCharacter == null || !isActive) return;
         UnitManager.Instance.ChangeSelectedHero(tiedCharacter);
     }
 
@@ -41,15 +46,28 @@ public class CharacterButtonBehavior : Button, IDropHandler
         tiedCharacter = hero;
         CharacterIndex = index;
         portraitImage.sprite = hero.UnitPortrait;
+        UpdateHealth();
     }
 
     public void UpdateHealth()
     {
         healthText.text = $"{tiedCharacter.CurrentHealth}/{tiedCharacter.MaxHealth}";
+
+        if (tiedCharacter.CurrentHealth <= 0)
+        {
+            deathBoxObject.SetActive(true);
+            isActive = false;
+        }
+        else
+        {
+            deathBoxObject.SetActive(false);
+            isActive = true;
+        }
     }
 
     public void OnDrop(PointerEventData eventData)
     {
+        if (!isActive) return;
         //Get dropped object
         GameObject droppedObject = eventData.pointerDrag;
         DraggableItem dragItem = droppedObject.GetComponent<DraggableItem>();

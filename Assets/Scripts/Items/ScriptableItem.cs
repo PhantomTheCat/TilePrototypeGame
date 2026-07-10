@@ -8,4 +8,5 @@ public class ScriptableItem : ScriptableObject
     //Properties
     public BaseItem ItemPrefab;
     public ItemType Type;
+    public Rarity Rarity;
 }

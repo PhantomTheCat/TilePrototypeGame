@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -14,6 +15,9 @@ public class GridManager : MonoBehaviour
     [Header("Grid Settings")]
     [SerializeField] private float tileSize = 1f;
     [SerializeField] private int amountOfRooms = 50;
+    [Range(0.01f, 1f)]
+    [SerializeField] private float chanceOfRoom = .10f;
+    [Tooltip("Defines what layers the game can't see through")]
     [SerializeField] private LayerMask visionMask;
 
     [Header("Tile Prefabs")]
@@ -22,10 +26,12 @@ public class GridManager : MonoBehaviour
     [SerializeField] private GameObject startingPlatformPrefab;
     [SerializeField] private GameObject lastRoomPrefab;
     [SerializeField] private GameObject[] hallwayPrefabs;
+    [SerializeField] private GameObject[] roomPrefabs;
 
 
     private Dictionary<Vector2Int, BaseTile> tiles = new Dictionary<Vector2Int, BaseTile>();
     private Dictionary<Vector2Int, WallTile> wallTiles = new Dictionary<Vector2Int, WallTile>();
+    private List<RoomBehavior> rooms = new List<RoomBehavior>();
     private RoomBehavior lastRoom;
     private RoomBehavior currentRoom;
     private List<GroundTile> playerStartingTiles;
@@ -90,6 +96,7 @@ public class GridManager : MonoBehaviour
         lastRoom = startRoomBehavior;
 
         int index = 0;
+        chanceOfRoom *= 100;
 
         if (startRoomBehavior.NextDirections.Count == 0)
         {
@@ -97,17 +104,30 @@ public class GridManager : MonoBehaviour
             return;
         }
 
+        if (roomPrefabs == null || hallwayPrefabs == null) return;
+
         while (index < amountOfRooms)
         {
+            float wheel = Random.Range(1f, 100f);
+            GameObject roomPrefab = null;
+
+            if (wheel > chanceOfRoom)
+            {
+                roomPrefab = hallwayPrefabs[Random.Range(0, hallwayPrefabs.Length)];
+            }
+            else
+            {
+                roomPrefab = roomPrefabs[Random.Range(0, roomPrefabs.Length)];
+            }
+
             //Randomly getting a new room to add based on if it can connect to last room
-            GameObject roomPrefab = hallwayPrefabs[Random.Range(0, hallwayPrefabs.Length)];
             RoomBehavior room = roomPrefab.GetComponent<RoomBehavior>();
             bool haveConnection = false;
 
             //Seeing if the last room has any available directions to connect to, if not, we need to backtrack to a previous room that does have available directions
             if (!lastRoom.CheckIfAnyDirectionsAvailable())
             {
-                RoomBehavior[] previousRooms = FindObjectsByType<RoomBehavior>(FindObjectsSortMode.InstanceID);
+                RoomBehavior[] previousRooms = FindObjectsByType<RoomBehavior>();
 
                 if (previousRooms.Length == 0)
                 {
@@ -252,6 +272,8 @@ public class GridManager : MonoBehaviour
 
     private void AddToDictionary(RoomBehavior room)
     {
+        rooms.Add(room);
+
         foreach (BaseTile tile in room.GroundTiles)
         {
             int x = (int)Mathf.Round(tile.transform.position.x);
@@ -387,7 +409,7 @@ public class GridManager : MonoBehaviour
         if (selectedHero == null) { return; }
         ClearAllHighlights();
 
-        List<BaseTile> actionTiles = action.GetActionTiles(selectedHero);
+        List<BaseTile> actionTiles = action.GetTargetTiles(selectedHero);
 
         foreach (BaseTile tile in actionTiles)
         {
@@ -420,12 +442,12 @@ public class GridManager : MonoBehaviour
     /// <param name="range">Max number of tiles to go out to</param>
     /// <param name="withWalls">Want the list with or without walls</param>
     /// <returns></returns>
-    public List<BaseTile> GetValidTiles(BaseUnit user, int range, bool withWalls)
+    public List<BaseTile> GetValidTiles(BaseUnit user, int range, bool withWalls, bool withUnits, bool withUser)
     {
         List<BaseTile> validTiles = new List<BaseTile>();
 
         if (user.OccupiedTile == null) { return validTiles; }
-        validTiles.Add(user.OccupiedTile);
+        if (withUser) { validTiles.Add(user.OccupiedTile); }
 
         for (int x = -range; x <= range; x++)
         {
@@ -443,7 +465,18 @@ public class GridManager : MonoBehaviour
                             validTiles.Add(tile);
                         }
                     }
-                    else if (tile.Walkable) { validTiles.Add(tile); }
+                    else if (tile.Walkable || tile.OccupiedChest != null)
+                    {
+                        validTiles.Add(tile);
+                    }
+                    else if (tile.OccupiedUnit != null && withUnits)
+                    {
+                        if (!withUser && tile == user.OccupiedTile)
+                        {
+                            continue;
+                        }
+                        validTiles.Add(tile);
+                    }
                 }
             }
         }
@@ -453,6 +486,13 @@ public class GridManager : MonoBehaviour
 
     public void UpdateVision()
     {
+        //Set all rooms active for sighting
+        foreach (RoomBehavior room in rooms)
+        {
+            room.gameObject.SetActive(true);
+        }
+
+        //Get all the visible tiles
         List<BaseTile> visibleTiles = GetTilesInSight(UnitManager.Instance.Heroes);
 
         foreach (BaseTile tile in tiles.Values)
@@ -460,10 +500,25 @@ public class GridManager : MonoBehaviour
             if (visibleTiles.Contains(tile))
             {
                 tile.gameObject.SetActive(true);
+                tile.IsVisible = true;
             }
             else            
             {
                 tile.gameObject.SetActive(false);
+                tile.IsVisible = false;
+            }
+        }
+
+        //For efficiency, set all rooms with non-visible tiles to be inactive till we update vision
+        foreach (RoomBehavior room in rooms)
+        {
+            if (room.CheckIfVisible())
+            {
+                room.gameObject.SetActive(true);
+            }
+            else
+            {
+                room.gameObject.SetActive(false);
             }
         }
     }
@@ -480,7 +535,7 @@ public class GridManager : MonoBehaviour
 
         foreach (BaseHero hero in heroes)
         {
-            List<BaseTile> checkTiles = GetValidTiles(hero, hero.ViewRange, false);
+            List<BaseTile> checkTiles = GetValidTiles(hero, hero.ViewRange, false, false, true);
 
             //Want to only check tiles within a certain distance from the hero to optimize performance
             foreach (BaseTile tile in checkTiles)
@@ -522,27 +577,217 @@ public class GridManager : MonoBehaviour
                         validTiles.Add(tile);
                         continue;
                     }
+                }
+            }
+        }
 
-                    //Trying to get the tile at the raycast hit
-                    Vector3 hitVector3 = hit.collider.gameObject.transform.position;
-                    int x = (int)Mathf.Round(hitVector3.x);
-                    int y = (int)Mathf.Round(hitVector3.y);
-
-                    Vector2Int hitPos = new Vector2Int(x, y);
-                    BaseTile tileHit = GetTileAtPosition(hitPos);
-                    if (tileHit == null) { continue; }
-                    
-                    if (tileHit == tile)
-                    {
-                        //Happens if raycast hits a gameObject on the tile but
-                        //it's not the tile itself, such as Mist or a WallTile
-                        validTiles.Add(tileHit);
-                    }
+        //Getting wall tiles in sight
+        for (int i = 0; i < validTiles.Count; i++)
+        {
+            BaseTile tile = validTiles[i];
+            if (tile == null) continue;
+            if (tile is WallTile) continue;
+            foreach (Vector2Int dir in BaseTile.Dirs)
+            {
+                Vector2Int neighborPos = tile.Coords.Pos + dir;
+                BaseTile neighbor = GetTileAtPosition(neighborPos);
+                if (neighbor == null) continue;
+                if (!validTiles.Contains(neighbor) && neighbor is WallTile)
+                {
+                    validTiles.Add(neighbor);
                 }
             }
         }
 
         return validTiles;
     }
+    #endregion
+
+    #region Areas
+    public List<BaseTile> GetCircleArea(BaseUnit unit, BaseTile center, int size)
+    {
+        List<BaseTile> validTiles = new List<BaseTile>();
+        validTiles.Add(center);
+
+        for (int x = -size; x <= size; x++)
+        {
+            for (int y = -size; y <= size; y++)
+            {
+                Vector2Int tilePos = new Vector2Int(center.Coords.Pos.x + x, center.Coords.Pos.y + y);
+                BaseTile tile = GetTileAtPosition(tilePos);
+
+                if (tile == null) continue;
+                if (tile is WallTile) continue;
+                if (validTiles.Contains(tile)) continue;
+
+                //Get distance measure
+                float distance = center.GetDistance(tile);
+                if (distance <= size * 10)
+                {
+                    validTiles.Add(tile);
+                }
+            }
+        }
+        
+        return validTiles;
+    }
+
+    public List<BaseTile> GetRectangleArea(BaseUnit unit, BaseTile center, int horSize, int vertSize)
+    {
+        List<BaseTile> validTiles = new List<BaseTile>();
+        validTiles.Add(center);
+
+        for (int x = -horSize; x <= horSize; x++)
+        {
+            for (int y = -vertSize; y <= vertSize; y++)
+            {
+                Vector2Int tilePos = new Vector2Int(center.Coords.Pos.x + x, center.Coords.Pos.y + y);
+                BaseTile tile = GetTileAtPosition(tilePos);
+
+                if (tile is WallTile) continue;
+                if (validTiles.Contains(tile)) continue;
+                validTiles.Add(tile);
+            }
+        }
+
+        return validTiles;
+    }
+
+    public List<BaseTile> GetConeArea(BaseTile userTile, BaseTile start, int horSize, int vertSize)
+    {
+        List<BaseTile> validTiles = new List<BaseTile>();
+        validTiles.Add(start);
+
+        //Get the direction for the cone based on where the start tile is to the user's tile
+        Vector2Int direction = start.Coords.Pos - userTile.Coords.Pos;
+
+        Vector2Int negaTilePos = new Vector2Int(0, 0);
+        Vector2Int posiTilePos = new Vector2Int(0, 0);
+
+        if (direction == Vector2.up || direction == new Vector2(1, 1) || direction == new Vector2(-1, 1))
+        {
+            negaTilePos = new Vector2Int(start.Coords.Pos.x + -horSize, start.Coords.Pos.y + vertSize);
+            posiTilePos = new Vector2Int(start.Coords.Pos.x + horSize, start.Coords.Pos.y + vertSize);
+        }
+        else if (direction == Vector2.down || direction == new Vector2(1, -1) || direction == new Vector2(-1, -1))
+        {
+            negaTilePos = new Vector2Int(start.Coords.Pos.x + -horSize, start.Coords.Pos.y + -vertSize);
+            posiTilePos = new Vector2Int(start.Coords.Pos.x + horSize, start.Coords.Pos.y + -vertSize);
+        }
+        else if (direction == Vector2.right)
+        {
+            negaTilePos = new Vector2Int(start.Coords.Pos.x + horSize, start.Coords.Pos.y + -vertSize);
+            posiTilePos = new Vector2Int(start.Coords.Pos.x + horSize, start.Coords.Pos.y + vertSize);
+        }
+        else if (direction == Vector2.left)
+        {
+            negaTilePos = new Vector2Int(start.Coords.Pos.x + -horSize, start.Coords.Pos.y + -vertSize);
+            posiTilePos = new Vector2Int(start.Coords.Pos.x + -horSize, start.Coords.Pos.y + vertSize);
+        }
+        else return validTiles;
+
+        //Get all tiles inside this area
+        List<BaseTile> insideConeTiles = GetTilesInsideVertices(start.Coords.Pos, negaTilePos, posiTilePos);
+        if (insideConeTiles != null && insideConeTiles.Count > 0) validTiles.AddRange(insideConeTiles);
+
+        return validTiles;
+    }
+
+    private List<BaseTile> GetTilesInsideVertices(Vector2Int start, Vector2Int vertice1, Vector2Int vertice2)
+    {
+        List<BaseTile> validTiles = new List<BaseTile>();
+
+        //Get the extremes, so we can get a list of BaseTiles
+        Vector2Int[] vertexs = new Vector2Int[3] {start, vertice1, vertice2};
+        int maxHor = 0;
+        int minHor = 0;
+        int maxVer = 0;
+        int minVer = 0;
+
+        for (int i = 0; i < vertexs.Length; i++)
+        {
+            Vector2Int vertice = vertexs[i];
+            if (i == 0)
+            {
+                maxHor = vertice.x;
+                minHor = vertice.x;
+                maxVer = vertice.y;
+                minVer = vertice.y;
+                continue;
+            }
+
+            //See if above or below horizontal values (new extreme)
+            if (vertice.x > maxHor)
+            {
+                maxHor = vertice.x;
+            }
+            else if (vertice.x < minHor)
+            {
+                minHor = vertice.x;
+            }
+            //See if above or below vertical values (new extreme)
+            if (vertice.y  > maxVer)
+            {
+                maxVer = vertice.y;
+            }
+            else if (vertice.y < minVer)
+            {
+                minVer = vertice.y;
+            }
+        }
+
+        Vector2[] angles = new Vector2[4] 
+        { 
+            new Vector2(0, tileSize * 0.5f), 
+            new Vector2(0, -tileSize * 0.5f), 
+            new Vector2(-tileSize * 0.5f, 0), 
+            new Vector2(tileSize * 0.5f, 0) 
+        };
+
+        //Get a list of all the BaseTiles that are within the max ranges
+        for (int x = minHor; x <= maxHor; x++)
+        {
+            for (int y = minVer; y <= maxVer; y++)
+            {
+                //See if in cone
+                Vector2Int tilePos = new Vector2Int(x, y);
+                bool isInCone = false;
+
+                foreach (Vector2 angle in angles)
+                {
+                    Vector2 checkPos = new Vector2(tilePos.x + angle.x, tilePos.y + angle.y);
+                    bool inCone = CheckIfInCone(checkPos, start, vertice1, vertice2);
+                    if (inCone)
+                    {
+                        isInCone = true;
+                        break;
+                    }
+                }
+                if (!isInCone) continue;
+
+                //Final checks, then add tile to valid tiles
+                BaseTile tile = GetTileAtPosition(tilePos);
+                if (tile == null) continue;
+                if (tile is WallTile) continue;
+                if (validTiles.Contains(tile)) continue;
+                validTiles.Add(tile);
+            }
+        }
+
+        return validTiles;
+    }
+
+    public bool CheckIfInCone(Vector2 point, Vector2 A, Vector2 B, Vector2 C)
+    {
+        //Using a Barycentric Coordinate System here, where we input the formula,
+        //and if the point is inside the triangle, then a, b, and c should all be between or equal to 0 and 1
+        float denominator = ((B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y));
+        float a = ((B.y - C.y) * (point.x - C.x) + (C.x - B.x) * (point.y - C.y)) / denominator;
+        float b = ((C.y - A.y) * (point.x - C.x) + (A.x - C.x) * (point.y - C.y)) / denominator;
+        float c = 1f - a - b;
+
+        return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
+    }
+
     #endregion
 }

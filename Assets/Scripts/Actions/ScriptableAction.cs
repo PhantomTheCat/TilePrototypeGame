@@ -8,6 +8,7 @@ public class ScriptableAction : ScriptableObject
 {
     public ActionType actionType;
     public BaseAction actionPrefab;
+    public bool CanStartOnPlayer = false;
 }
 
 public enum ActionType

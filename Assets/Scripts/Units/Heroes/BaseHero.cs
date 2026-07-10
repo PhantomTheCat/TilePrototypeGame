@@ -37,8 +37,10 @@ public class BaseHero : BaseUnit
     public override void Die()
     {
         base.Die();
-        UnitManager.Instance.DefeatedHeroes.Add(this);
-        UnitManager.Instance.Heroes.Remove(this);
+        UnitManager unitManager = UnitManager.Instance;
+        unitManager.DefeatedHeroes.Add(this);
+        unitManager.Heroes.Remove(this);
+        unitManager.ChangeSelectedHero(unitManager.Heroes[0]);
     }
 
     public override void Revive(BaseTile spawnTile)
@@ -131,19 +133,25 @@ public class BaseHero : BaseUnit
             {
                 prevItem.IsEquipped = false;
                 if (equippedItems.Contains(prevItem))
+                {
                     equippedItems.Remove(prevItem);
+                    prevItem.OnUnequip(this);
+                }
             }
+
+            item.OnEquip(this);
         }
     }
 
     public void UnequipItem(BaseItem item, int slotIndex)
     {
         //Check to see if item is equipped
-        if (!equippedItems.Contains(item))
-            return;
+        if (item == null) return;
+        if (!equippedItems.Contains(item)) return;
 
         equippedItems.Remove(item);
         item.IsEquipped = false;
+        item.OnUnequip(this);
 
         switch (item.Type)
         {

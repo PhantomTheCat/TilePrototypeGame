@@ -14,17 +14,12 @@ public class CameraManager : MonoBehaviour
     {
         Instance = this;
         MainCamera = Camera.main;
+        MainCamera.transform.position = CharacterOffset;
     }
 
-    private void LateUpdate()
+    public void UpdateCameraParent(Transform newParent)
     {
-        FollowSelectedCharacter();
-
-        //TODO: Add dynamic camera movement and zooming based on player actions and room size, if necessary.
-    }
-
-    private void FollowSelectedCharacter()
-    {
-        MainCamera.transform.position = UnitManager.Instance.SelectedHero.transform.position + CharacterOffset;
+        MainCamera.transform.parent = newParent;
+        MainCamera.transform.position = newParent.position + CharacterOffset;
     }
 }

@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 887c91227969cba42aca22a09f695c92, type: 3}
+  m_Name: ButcherBlade
+  m_EditorClassIdentifier: Assembly-CSharp::ScriptableItem
+  ItemPrefab: {fileID: 266926594563704763, guid: 46ca8c7ebb570c64d884ca760105a01a, type: 3}
+  Type: 0
+  Rarity: 1

@@ -40,6 +40,8 @@ public class RoomBehavior : MonoBehaviour
         BOSS = 1,
         TREASURE = 2,
         SPAWN = 3,
+        STAIRCASE = 4,
+        ENCOUNTER = 5,
     }
 
 
@@ -62,6 +64,25 @@ public class RoomBehavior : MonoBehaviour
         {
             Debug.LogError("Invalid room configuration. Please check the room settings and tile selections.");
         }
+    }
+
+    public bool CheckIfVisible()
+    {
+        int tileCount = 0;
+        foreach (GroundTile tile in GroundTiles)
+        {
+            if (tile.IsVisible)
+            {
+                tileCount++;
+            }
+        }
+        //If no tiles are visible, then we return false,
+        //otherwise return true
+        if (tileCount == 0)
+        {
+            return false;
+        }
+        return true;
     }
 
     public GroundTile GetMistSpawnTile()

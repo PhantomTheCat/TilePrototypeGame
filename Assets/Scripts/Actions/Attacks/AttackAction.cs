@@ -1,6 +1,6 @@
+using JetBrains.Annotations;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 public class AttackAction : BaseAction
 {
@@ -27,20 +27,11 @@ public class AttackAction : BaseAction
     public override void Execute(BaseUnit attacker, BaseUnit target)
     {
         //TODO: Implement attack logic based on RangeType, TypeOfDamage, and AreaType
-
-        if (target == null || attacker == null)
-        {
-            Debug.LogWarning($"{ActionName}: Target or Attacker is null.");
-            return;
-        }
+        base.Execute(attacker, target);
+        if (target == null || attacker == null) return;
 
         // Apply damage to the target unit
-        target.TakeDamage(DamageAmount);
-    }
-
-    public override List<BaseTile> GetActionTiles(BaseUnit user)
-    {
-        List<BaseTile> actionTiles = GridManager.Instance.GetValidTiles(user, Range, false);
-        return actionTiles;
+        int scaling = GetScalingAttribute(attacker);
+        target.TakeDamage(DamageAmount + scaling);
     }
 }

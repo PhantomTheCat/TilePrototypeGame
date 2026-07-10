@@ -14,6 +14,7 @@ public class BaseUnit : MonoBehaviour
     public string UnitName;
     public UnitState MoveState = UnitState.IDLE;
     public Sprite UnitPortrait;
+    [HideInInspector] public int InteractableRange = 1;
 
     [Header("Stats")]
     public int MoveRange = 5;
@@ -141,6 +142,70 @@ public class BaseUnit : MonoBehaviour
         Actions = newActions;
     }
 
+    public void AddAction(BaseAction action)
+    {
+        if (Actions.Count > 10) return;
+        Actions.Add(action);
+    }
+
+    public void RemoveAction(BaseAction action)
+    {
+        if (Actions.Contains(action))
+        {
+            Actions.Remove(action);
+        }
+    }
+
+    /// <summary>
+    /// Either increases or decreases a stat by a set amount
+    /// </summary>
+    /// <param name="isIncrease"></param>
+    /// <param name="statAffected"></param>
+    /// <param name="amount"></param>
+    public void StatUpdate(AffectableStat statAffected, int amount)
+    {
+        switch (statAffected)
+        {
+            case AffectableStat.HP:
+                MaxHealth += amount;
+                CurrentHealth += amount;
+                break;
+            case AffectableStat.MANA:
+                MaxMana += amount;
+                CurrentMana += amount;
+                break;
+            case AffectableStat.MOVEMENT:
+                MoveRange += amount;
+                MoveRangeLeft += amount;
+                break;
+            case AffectableStat.ACTION:
+                MaxActionPoint += amount;
+                CurrentActionPoint += amount;
+                break;
+            case AffectableStat.STR:
+                Strength += amount;
+                break;
+            case AffectableStat.DEX:
+                Dexterity += amount;
+                break;
+            case AffectableStat.CON:
+                Constitution += amount;
+                break;
+            case AffectableStat.FAITH:
+                Faith += amount;
+                break;
+            case AffectableStat.INT:
+                Intelligence += amount;
+                break;
+            case AffectableStat.CRITCHANCE:
+                CritChance += amount;
+                break;
+            case AffectableStat.CRITMULT:
+                CritMultiplier += amount;
+                break;
+        }
+    }
+
     #region Pathfinding
     /// <summary>
     /// Validates the path to the specified target tile and initiates movement if the path is valid.
@@ -153,26 +218,14 @@ public class BaseUnit : MonoBehaviour
     {
         //Getting the movement range
         List<BaseTile> movementRange = GetMovementRange();
-        if (!movementRange.Contains(targetTile))
-        {
-            Debug.Log("Target tile is out of movement range!");
-            return;
-        }
+        if (!movementRange.Contains(targetTile)) return;
 
         //Making sure the target tile is walkable
-        if (!targetTile.Walkable)
-        {
-            Debug.LogWarning("Target tile is not walkable!");
-            return;
-        }
+        if (!targetTile.Walkable) return;
 
         //Getting the path to the target tile
         List<BaseTile> path = GetPath(OccupiedTile, targetTile);
-        if (path == null)
-        {
-            Debug.LogWarning("No path to target tile!");
-            return;
-        }
+        if (path == null) return;
 
         //Moving the unit along the path
         MoveState = UnitState.MOVING;
@@ -325,3 +378,19 @@ public class BaseUnit : MonoBehaviour
         DEAD = 3
     }
 }
+
+public enum AffectableStat 
+{ 
+    HP = 0,
+    MANA = 1,
+    MOVEMENT = 2,
+    ACTION = 3,
+    STR = 4,
+    DEX = 5,
+    CON = 6,
+    FAITH = 7,
+    INT = 8,
+    CRITCHANCE = 9,
+    CRITMULT = 10
+}
+

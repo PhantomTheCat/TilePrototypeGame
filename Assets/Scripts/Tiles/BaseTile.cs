@@ -19,7 +19,13 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
     [SerializeField] protected GameObject rangeIndicatorGO;
     [SerializeField] protected GameObject attackIndicatorGO;
     [SerializeField] protected bool isWalkable = true;
+    [HideInInspector] public bool IsVisible = true;
+    private List<BaseTile> currentActionTiles = new List<BaseTile>();
+    private bool isTargeted = false;
+
+    [Header("Occupied Units and Objects")]
     public BaseUnit OccupiedUnit;
+    public ChestBehavior OccupiedChest;
 
 
     [Header("Pathfinding")] //Using A* pathfinding
@@ -89,9 +95,16 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
         else if (UnitManager.Instance.SelectedHero.MoveState == BaseUnit.UnitState.USING_ACTION)
         {
             BaseHero selectedHero = UnitManager.Instance.SelectedHero;
-            if (selectedHero.CurrentAction.GetActionTiles(selectedHero).Contains(this))
+            if (selectedHero.CurrentAction.GetTargetTiles(selectedHero).Contains(this))
             {
-                attackIndicatorGO.SetActive(true);
+                isTargeted = true;
+                List<BaseTile> actionTiles = selectedHero.CurrentAction.GetActionTiles(selectedHero, this);
+                if (actionTiles.Count == 0 || actionTiles == null) return;
+                foreach (BaseTile tile in actionTiles)
+                {
+                    currentActionTiles.Add(tile);
+                    tile.attackIndicatorGO.SetActive(true);
+                }
             }
         }
     }
@@ -99,7 +112,11 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
     public void OnPointerExit(PointerEventData eventData)
     {
         highlightGO.SetActive(false);
-        attackIndicatorGO.SetActive(false);
+        if (isTargeted)
+        {
+            ClearActionTiles();
+            isTargeted= false;
+        }
         LineManager.Instance.ClearLine();
     }
 
@@ -124,20 +141,48 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
                     CheckIntentionForEnemy();
                 }
             }
+            else if (OccupiedChest != null)
+            {
+                //See if selected hero is within range
+                float distance = GetDistance(selectedHero.OccupiedTile);
+
+                if (distance <= selectedHero.InteractableRange * 10)
+                {
+                    OccupiedChest.CallUIChestUpdate();
+                }
+            }
 
             if (Walkable)
             {
                 //Checking path to this tile and selecting it if valid
                 UnitManager.Instance.SelectedHero.CheckPath(this);
+                UIChestBehavior.Instance.CloseChest();
             }
         }
         else if (selectedHero.MoveState == BaseUnit.UnitState.USING_ACTION)
         {
-            if (selectedHero.CurrentAction.GetActionTiles(selectedHero).Contains(this))
+            if (isTargeted && currentActionTiles.Count != 0)
             {
-                selectedHero.CurrentAction.Execute(selectedHero, OccupiedUnit);
+                for (int i = 0; i < currentActionTiles.Count; i++)
+                {
+                    BaseTile tile = currentActionTiles[i];
+                    if (tile.OccupiedUnit != null)
+                    {
+                        selectedHero.CurrentAction.Execute(selectedHero, tile.OccupiedUnit);
+                    }
+                }
             }
         }
+    }
+
+    private void ClearActionTiles()
+    {
+        if (currentActionTiles == null || currentActionTiles.Count == 0) return;
+        foreach (BaseTile tile in currentActionTiles)
+        {
+            tile.attackIndicatorGO.SetActive(false);
+        }
+        currentActionTiles.Clear();
     }
     #endregion
 
@@ -194,6 +239,11 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
 
 public struct ICoords
 {
+    /// <summary>
+    /// Doesn't get exact distance, but a representation of that distance to use for pathfinding
+    /// </summary>
+    /// <param name="other"></param>
+    /// <returns></returns>
     public float GetDistance(ICoords other)
     {
         var dist = new Vector2Int(Mathf.Abs((int)Pos.x - (int)other.Pos.x), Mathf.Abs((int)Pos.y - (int)other.Pos.y));

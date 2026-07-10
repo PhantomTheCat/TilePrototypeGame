@@ -61,6 +61,9 @@ public class UIManager : MonoBehaviour
     [Header("Stat Screen")]
     [SerializeField] private StatScreenBehavior statScreen;
 
+    [Header("UI Chest")]
+    [SerializeField] private UIChestBehavior chestScreen;
+
 
     //Methods
     private void Awake()
@@ -70,6 +73,7 @@ public class UIManager : MonoBehaviour
         GetHotbar();
         GetInventorySlots();
         equipmentSlots = GetEquipmentSlots();
+        chestScreen.Activate();
     }
 
     private InventorySlot[] GetEquipmentSlots()
@@ -81,11 +85,13 @@ public class UIManager : MonoBehaviour
 
     public void UpdateSelectedHeroUI(BaseHero hero)
     {
+        CameraManager.Instance.UpdateCameraParent(hero.transform);
         selectedHeroText.text = hero != null ? $"{hero.UnitName}" : "N/A";
         GridManager.Instance.HighlightHeroTiles();
         UpdateHotbar(hero);
         UpdateInventorySlots();
         statScreen.UpdateUserProfile();
+        chestScreen.CloseChest();
     }
 
     public void UpdateTurnIndicator(GameState state)
@@ -167,14 +173,16 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private void CreateNewDraggableItem(BaseItem itemData, Transform parent, BaseHero hero)
+    public DraggableItem CreateNewDraggableItem(BaseItem itemData, Transform parent, BaseHero hero)
     {
         GameObject newItem = Instantiate(draggableItemPrefab, parent);
         DraggableItem draggable = newItem.GetComponent<DraggableItem>();
         if (draggable != null)
         {
             draggable.Initialize(itemData, hero);
+            return draggable;
         }
+        return null;
     }
 
     public void UpdateInventorySlots()

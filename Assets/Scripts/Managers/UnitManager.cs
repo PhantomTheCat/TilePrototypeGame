@@ -10,6 +10,7 @@ public class UnitManager : MonoBehaviour
     public BaseHero SelectedHero;
     private List<ScriptableUnit> units;
     private List<ScriptableAction> actions;
+    private List<ScriptableAction> playerStartActions;
 
     [Header("Spawn Settings")]
     [SerializeField] private int AmountOfHeroes = 1;
@@ -32,6 +33,7 @@ public class UnitManager : MonoBehaviour
         //Getting all units and actions from the Resources folder
         units = Resources.LoadAll<ScriptableUnit>("Units").ToList();
         actions = Resources.LoadAll<ScriptableAction>("Actions").ToList();
+        playerStartActions = actions.Where(a => a.CanStartOnPlayer).ToList();
     }
 
     public void SpawnRandomHeroes()
@@ -85,7 +87,16 @@ public class UnitManager : MonoBehaviour
 
     private void GiveRandomHeroActions(BaseHero hero)
     {
-        List<ScriptableAction> heroActions = actions.OrderBy(a => Random.value).Take(StartingActionsPerHero).ToList();
+        if (playerStartActions.Count == 0)
+        {
+            Debug.LogWarning("No player start actions found. Please add some ScriptableActions with CanStartOnPlayer set to true.");
+            return;
+        }
+        if (playerStartActions.Count < StartingActionsPerHero)
+        {
+            StartingActionsPerHero = playerStartActions.Count;
+        }
+        List<ScriptableAction> heroActions = playerStartActions.OrderBy(a => Random.value).Take(StartingActionsPerHero).ToList();
         List<BaseAction> instantiatedActions = new List<BaseAction>();
         foreach (ScriptableAction action in heroActions)
         {
@@ -103,7 +114,7 @@ public class UnitManager : MonoBehaviour
     private void GiveStarterItems(BaseHero hero)
     {
         //Just giving one item for now for testing
-        BaseItem testItem = ItemManager.Instance.GetRandomItem();
+        BaseItem testItem = ItemManager.Instance.GetRandomItemOfType(ItemType.WEAPON, Rarity.COMMON);
         hero.Inventory.Add(testItem);
     }
 
