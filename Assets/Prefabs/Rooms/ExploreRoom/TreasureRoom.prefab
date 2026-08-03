@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edaa17fb3db98594f9ce254f906a9ef8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomBehavior
-  roomType: 2
+  TypeOfRoom: 2
   availableDirections: 01000000020000000300000000000000
   numDoorsOut: 3
   GroundTiles:

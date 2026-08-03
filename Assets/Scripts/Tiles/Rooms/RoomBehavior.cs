@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Represents selections of tiles that form a room, and contains any room-specific logic or properties.
@@ -8,7 +9,7 @@ public class RoomBehavior : MonoBehaviour
 {
     //Properties
     [Header("Room Settings")]
-    public RoomType roomType;
+    public RoomType TypeOfRoom;
 
     [Header("Generation Settings")]
     /// <summary>
@@ -68,26 +69,33 @@ public class RoomBehavior : MonoBehaviour
 
     public bool CheckIfVisible()
     {
-        int tileCount = 0;
+        //Need only 1 tile to be visible for the room to be considered visible
         foreach (GroundTile tile in GroundTiles)
         {
             if (tile.IsVisible)
             {
-                tileCount++;
+                return true;
             }
         }
-        //If no tiles are visible, then we return false,
-        //otherwise return true
-        if (tileCount == 0)
+        return false;
+    }
+
+    public bool CheckIfExplored()
+    {
+        //Need only 1 tile to be explored for the room to be considered explored
+        foreach (GroundTile tile in GroundTiles)
         {
-            return false;
+            if (tile.IsExplored)
+            {
+                return true;
+            }
         }
-        return true;
+        return false;
     }
 
     public GroundTile GetMistSpawnTile()
     {
-        if (roomType != RoomType.SPAWN) { return null; }
+        if (TypeOfRoom != RoomType.SPAWN) { return null; }
 
         switch (entryDirection)
         {
@@ -107,7 +115,7 @@ public class RoomBehavior : MonoBehaviour
 
     public List<GroundTile> GetHeroSpawnTiles()
     {
-        if (roomType != RoomType.SPAWN) { return null; }
+        if (TypeOfRoom != RoomType.SPAWN) { return null; }
         List<GroundTile> spawnTiles = new List<GroundTile>();
         foreach (GroundTile tile in GroundTiles)
         {
@@ -118,6 +126,21 @@ public class RoomBehavior : MonoBehaviour
         }
         return spawnTiles;
     }
+
+    public List<GroundTile> GetEnemySpawnTiles()
+    {
+        if (TypeOfRoom != RoomType.ENCOUNTER && TypeOfRoom != RoomType.TREASURE) { return null; }
+        List<GroundTile> spawnTiles = new List<GroundTile>();
+        foreach (GroundTile tile in GroundTiles)
+        {
+            if (tile.Walkable)
+            {
+                spawnTiles.Add(tile);
+            }
+        }
+        return spawnTiles;
+    }
+
 
     private bool CheckIfValid()
     {

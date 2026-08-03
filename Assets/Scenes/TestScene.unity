@@ -627,7 +627,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SelectedHero: {fileID: 0}
   AmountOfHeroes: 2
-  AmountOfEnemies: 0
+  AmountOfEnemies: 50
   StartingActionsPerHero: 1
 --- !u!1 &73574690
 GameObject:
@@ -2047,7 +2047,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MistManager
   mistCoveredTiles: []
-  mistSpreadRate: 1
+  mistSpreadRate: 2
 --- !u!1001 &278140618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2191,7 +2191,7 @@ Transform:
   m_GameObject: {fileID: 283584446}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.70336, y: 2.59339, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2328,12 +2328,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 308694574}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -20}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 1, z: -20}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 330585546}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &308694576
 MonoBehaviour:
@@ -2414,14 +2414,14 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 40
+  orthographic size: 20
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 192
+    m_Bits: 2496
   m_RenderingPath: -1
-  m_TargetTexture: {fileID: 8400000, guid: ac26e2d696f603945ae955f89a5c988b, type: 2}
-  m_TargetDisplay: 0
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 1
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 1
@@ -2526,8 +2526,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 1, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 308694575}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &330585547
@@ -10069,7 +10068,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 8400000, guid: ac26e2d696f603945ae955f89a5c988b, type: 2}
+  m_Texture: {fileID: 0}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -10215,7 +10214,7 @@ MonoBehaviour:
   chanceOfRoom: 0.2
   visionMask:
     serializedVersion: 2
-    m_Bits: 384
+    m_Bits: 128
   groundTilePrefab: {fileID: 3824813006665903338, guid: 7d952b89b8cbd504094c6f752d5f1186, type: 3}
   wallTilePrefab: {fileID: 9074836806597978900, guid: a258a282a3d1e8b47b638eb30255d3aa, type: 3}
   startingPlatformPrefab: {fileID: 3812763308274863642, guid: 2139465903bb7344aac5c6ab338e94b0, type: 3}
@@ -17018,6 +17017,7 @@ GameObject:
   - component: {fileID: 2119254631}
   - component: {fileID: 2119254633}
   - component: {fileID: 2119254632}
+  - component: {fileID: 2119254634}
   m_Layer: 5
   m_Name: Minimap
   m_TagString: Untagged
@@ -17083,6 +17083,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2119254630}
   m_CullTransparentMesh: 1
+--- !u!114 &2119254634
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2119254630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77537729643bb6445bf6f1c807fe866d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimapManager
+  minimapCamera: {fileID: 308694578}
+  minimapImage: {fileID: 1362946725}
+  heroTrackerPrefab: {fileID: 3659603407529095442, guid: f3d9382a8e34cfd47be81a2026fa3231, type: 3}
+  cameraOffset: {x: 0, y: 0, z: -20}
+  heroTrackerOffset: {x: 0, y: 0, z: -5}
+  minimapSize: 256
+  distanceToInclude: 150
 --- !u!1 &2119322052
 GameObject:
   m_ObjectHideFlags: 0
@@ -17300,6 +17319,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GameState: 0
+  EnemyEndTurn:
+    m_PersistentCalls:
+      m_Calls: []
+  FrameRateCap: 60
+  TransitionDelay: 1.5
+  StartDelay: 0.1
 --- !u!1001 &4993189989846133176
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17503,6 +17528,7 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 330585546}
+  - {fileID: 308694575}
   - {fileID: 832575519}
   - {fileID: 283584447}
   - {fileID: 613807656}

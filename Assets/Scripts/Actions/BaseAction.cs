@@ -9,13 +9,15 @@ public class BaseAction : MonoBehaviour
     [Header("General")]
     public ActionType ActionType;
     public AffectableStat ScalingAttribute;
+
+    [Header("Area and Range")]
     public AreaType AreaShape;
+    public RangeType TypeOfRange;
     public int Range = 1;
+    [Range(1, 6)] public int MaxTargetAmount = 1;
     [Tooltip("Horizontal Area will be used as the default size for symmetrical areas")]
-    [Range(0, 10)]
-    public int HorizontalArea = 1;
-    [Range(0, 10)]
-    public int VerticalArea = 1;
+    [Range(0, 10)] public int HorizontalArea = 1;
+    [Range(0, 10)] public int VerticalArea = 1;
     public bool CanTargetUser = false;
 
     [Header("Action Info")]
@@ -37,11 +39,17 @@ public class BaseAction : MonoBehaviour
         CONE = 3,
     }
 
+    public enum RangeType
+    {
+        MELEE = 0,
+        RANGED = 1,
+    }
+
 
     //Methods
-    public virtual void Execute(BaseUnit user, BaseUnit target)
+    public virtual void Execute(BaseUnit user, List<BaseTile> targetTiles)
     {
-        if (target == null || user == null)
+        if (targetTiles == null || user == null)
         {
             return;
         }
@@ -54,7 +62,19 @@ public class BaseAction : MonoBehaviour
     /// <returns></returns>
     public virtual List<BaseTile> GetTargetTiles(BaseUnit user)
     {
-        List<BaseTile> tilesInRange = GridManager.Instance.GetValidTiles(user, Range, false, true, CanTargetUser);
+        GridManager.ValidModifiers[] modifiers;
+
+        if (CanTargetUser)
+        {
+            modifiers = new GridManager.ValidModifiers[] { GridManager.ValidModifiers.UNITS, GridManager.ValidModifiers.USER};
+        }
+        else
+        {
+            modifiers = new GridManager.ValidModifiers[] { GridManager.ValidModifiers.UNITS };
+
+        }
+
+        List<BaseTile> tilesInRange = GridManager.Instance.GetValidTiles(user, Range, modifiers);
         return tilesInRange; 
     }
 

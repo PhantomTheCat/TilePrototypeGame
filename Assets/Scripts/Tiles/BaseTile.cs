@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using static UnityEngine.GraphicsBuffer;
 
 
 /// <summary>
@@ -18,8 +19,10 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
     [SerializeField] protected GameObject highlightGO;
     [SerializeField] protected GameObject rangeIndicatorGO;
     [SerializeField] protected GameObject attackIndicatorGO;
+    [SerializeField] protected Animator effectAnimator;
     [SerializeField] protected bool isWalkable = true;
     [HideInInspector] public bool IsVisible = true;
+    [HideInInspector] public bool IsExplored = false;
     private List<BaseTile> currentActionTiles = new List<BaseTile>();
     private bool isTargeted = false;
 
@@ -41,12 +44,13 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
 
     //Methods
     #region Pathfinding
-    public virtual bool Walkable => isWalkable && OccupiedUnit == null;
+    public virtual bool Walkable => isWalkable && OccupiedUnit == null && OccupiedChest == null;
 
     public float GetDistance(BaseTile other) => Coords.GetDistance(other.Coords);
 
     public virtual void Activate(ICoords coords)
     {
+        enabled = true;
         Coords = coords;
     }
 
@@ -163,15 +167,28 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
         {
             if (isTargeted && currentActionTiles.Count != 0)
             {
-                for (int i = 0; i < currentActionTiles.Count; i++)
-                {
-                    BaseTile tile = currentActionTiles[i];
-                    if (tile.OccupiedUnit != null)
-                    {
-                        selectedHero.CurrentAction.Execute(selectedHero, tile.OccupiedUnit);
-                    }
-                }
+                //Executing the action on the target unit
+                selectedHero.CurrentAction.Execute(selectedHero, currentActionTiles);
             }
+        }
+    }
+
+    public void ActivateEffect(AttackAction.DamageType damageType)
+    {
+        if (effectAnimator == null) return;
+        switch (damageType)
+        {
+            case AttackAction.DamageType.PHYSICAL:
+                effectAnimator.SetTrigger("PhysicalTrigger");
+                break;
+            case AttackAction.DamageType.FIRE:
+                effectAnimator.SetTrigger("FireTrigger");
+                break;
+            case AttackAction.DamageType.ICE:
+                effectAnimator.SetTrigger("IceTrigger");
+                break;
+            default:
+                break;
         }
     }
 

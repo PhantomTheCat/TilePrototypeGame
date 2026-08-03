@@ -34,18 +34,35 @@ public class BaseHero : BaseUnit
         }
     }
 
+    public override void TakeDamage(int damage)
+    {
+        base.TakeDamage(damage);
+        UIManager.Instance.UpdateCharacterButtons();
+    }
+
+    public override void Heal(int amount)
+    {
+        base.Heal(amount);
+        UIManager.Instance.UpdateCharacterButtons();
+    }
+
     public override void Die()
     {
         base.Die();
+        UIManager.Instance.UpdateCharacterButtons();
         UnitManager unitManager = UnitManager.Instance;
         unitManager.DefeatedHeroes.Add(this);
         unitManager.Heroes.Remove(this);
         unitManager.ChangeSelectedHero(unitManager.Heroes[0]);
+
+        WaitForSeconds wait = new WaitForSeconds(1f);
+        gameObject.SetActive(false);
     }
 
     public override void Revive(BaseTile spawnTile)
     {
         base.Revive(spawnTile);
+        UIManager.Instance.UpdateCharacterButtons();
         UnitManager.Instance.DefeatedHeroes.Remove(this);
         UnitManager.Instance.Heroes.Add(this);
     }

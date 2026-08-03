@@ -1,4 +1,4 @@
-using NUnit.Framework;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -6,12 +6,14 @@ using UnityEngine;
 /// <summary>
 /// Base class for all units in the game.
 /// </summary>
+[RequireComponent(typeof(Animator))]
 public class BaseUnit : MonoBehaviour
 {
     //Properties
     [Header("General")]
     public Faction FactionType;
     public string UnitName;
+    public UnitHealthbar Healthbar;
     public UnitState MoveState = UnitState.IDLE;
     public Sprite UnitPortrait;
     [HideInInspector] public int InteractableRange = 1;
@@ -39,18 +41,45 @@ public class BaseUnit : MonoBehaviour
 
     [Header("Pathfinding")]
     public BaseTile OccupiedTile;
+    [HideInInspector] public BaseTile TargetTile;
     [SerializeField] protected float moveSpeed = 5f;
-    private List<BaseTile> currentPath;
-    private int currentPathIndex = 0;
+    protected List<BaseTile> currentPath;
+    protected int currentPathIndex = 0;
 
-    [HideInInspector] public List<BaseAction> Actions;
+    [Header("Actions")]
+    [Tooltip("Actions this unit can perform. Only need to specify these for enemy type units")]
+    public List<BaseAction> Actions;
     [HideInInspector] public BaseAction CurrentAction;
 
     public List<BaseItem> Inventory = new List<BaseItem>();
     [HideInInspector] public int InventorySize = 25;
 
+    [Header("Animation Stats")]
+    [Range(0, 5)][SerializeField] protected int meleeAttackAnimCount = 1;
+    [Range(0, 5)][SerializeField] protected int rangedAttackAnimCount = 1;
+    [Range(0, 5)][SerializeField] protected int spellAttackAnimCount = 1;
+    protected Animator animator;
+
 
     //Methods
+    protected virtual void Awake()
+    {
+        animator = GetComponent<Animator>();
+        CurrentHealth = MaxHealth;
+        CurrentMana = MaxMana;
+        CurrentActionPoint = MaxActionPoint;
+
+        if (Healthbar != null)
+        {
+            Healthbar.AssignUnit(this);
+        }
+        else
+        {
+            Healthbar = GetComponentInChildren<UnitHealthbar>();
+            if (Healthbar != null) Healthbar.AssignUnit(this);
+        }
+    }
+
     protected virtual void Update()
     {
         //If we are moving, move towards the target tile
@@ -60,26 +89,40 @@ public class BaseUnit : MonoBehaviour
             Vector3 targetPosition = targetTile.transform.position;
             Vector3 direction = (targetPosition - transform.position).normalized;
 
+            animator.SetBool("Walking", true);
+
             transform.Translate((direction * moveSpeed) * Time.deltaTime);
 
             //If we reached the target tile, move to the next tile in the path
             if (Vector3.Distance(transform.position, targetPosition) < 0.05f)
             {
-                SetNewTile(targetTile);
-
                 currentPathIndex++;
 
                 if (currentPathIndex >= currentPath.Count)
                 {
+                    SetNewTile(targetTile, true);
+
                     //Reached the end of the path
-                    MoveState = UnitState.IDLE;
                     currentPath = null;
+                    TargetTile = null;
                     currentPathIndex = 0;
+                    animator.SetBool("Walking", false);
 
                     if (FactionType == Faction.HERO)
                     {
-                        GridManager.Instance.HighlightHeroTiles();
+                        MoveState = UnitState.IDLE;
+                        MinimapManager.Instance.TakePicture();
+                        StartCoroutine(DelayVision());
                     }
+                    else if (FactionType == Faction.ENEMY)
+                    {
+                        //Moves to next state for enemy units, which is using an action
+                        MoveState = UnitState.USING_ACTION;
+                    }
+                }
+                else
+                {
+                    SetNewTile(targetTile, false);
                 }
             }
         }
@@ -88,32 +131,38 @@ public class BaseUnit : MonoBehaviour
     public virtual void Activate(BaseTile spawnTile)
     {
         OccupiedTile = spawnTile;
+        spawnTile.SetUnit(this);
+        transform.parent = spawnTile.transform;
     }
 
     public virtual void TakeDamage(int damage)
     {
         CurrentHealth = Mathf.Max(CurrentHealth - damage, 0);
+        if (Healthbar != null) Healthbar.UpdateBar();
+
         if (CurrentHealth <= 0)
         {
             Die();
         }
-        UIManager.Instance.UpdateCharacterButtons();
+        else
+        {
+            animator.SetTrigger("Hurt");
+        }
     }
 
     public virtual void Heal(int amount)
     {
         CurrentHealth = Mathf.Min(CurrentHealth + amount, MaxHealth);
-        UIManager.Instance.UpdateCharacterButtons();
+        if (Healthbar != null) Healthbar.UpdateBar();
     }
 
     public virtual void Die()
     {
+        CurrentHealth = 0;
         MoveState = UnitState.DEAD;
+        animator.SetTrigger("Death");
         OccupiedTile.OccupiedUnit = null;
         OccupiedTile = null;
-        gameObject.SetActive(false);
-
-        Debug.Log($"{UnitName} has died.");
     }
 
     public virtual void Revive(BaseTile spawnTile)
@@ -123,7 +172,7 @@ public class BaseUnit : MonoBehaviour
         OccupiedTile = spawnTile;
         spawnTile.SetUnit(this);
         gameObject.SetActive(true);
-        Debug.Log($"{UnitName} has been revived.");
+        if (Healthbar != null) Healthbar.UpdateBar();
     }
 
     public void SetActions(List<BaseAction> newActions)
@@ -206,6 +255,71 @@ public class BaseUnit : MonoBehaviour
         }
     }
 
+    protected IEnumerator DelayVision()
+    {
+        yield return new WaitForFixedUpdate();
+        GridManager.Instance.UpdateVision();
+        GridManager.Instance.HighlightHeroTiles();
+    }
+
+    protected List<BaseUnit> GetNearbyAllies(int withinDistance)
+    {
+        List<BaseUnit> units = new List<BaseUnit>();
+        if (FactionType == Faction.HERO)
+        {
+            units.AddRange(UnitManager.Instance.Heroes);
+        }
+        else if (FactionType == Faction.ENEMY)
+        {
+            units.AddRange(UnitManager.Instance.Enemies);
+        }
+        
+        units = units.Where(e => e.OccupiedTile.GetDistance(OccupiedTile) <= withinDistance).ToList();
+        return units;
+    }
+
+    #region Animations
+    protected virtual void PlayMeleeAttackAnimation()
+    {
+        if (meleeAttackAnimCount <= 0) return;
+        //Randomly plays one of the basic attacks
+        int randomAnim = Random.Range(1, meleeAttackAnimCount + 1);
+        animator.SetTrigger($"Attack{randomAnim}");
+    }
+
+    protected virtual void PlayRangedAttackAnimation()
+    {
+        if (rangedAttackAnimCount <= 0) return;
+        //Randomly plays one of the basic attacks
+        int randomAnim = Random.Range(1, rangedAttackAnimCount + 1);
+        animator.SetTrigger($"RangeAttack{randomAnim}");
+    }
+
+    protected virtual void PlaySpellAttackAnimation()
+    {
+        if (spellAttackAnimCount <= 0) return;
+        //Randomly plays one of the basic attacks
+        int randomAnim = Random.Range(1, spellAttackAnimCount + 1);
+        animator.SetTrigger($"SpellAttack{randomAnim}");
+    }
+
+    protected virtual void PlayHealAnimation()
+    {
+        animator.SetTrigger("Healing");
+    }
+
+    protected virtual void PlaySummonAnimation()
+    {
+        animator.SetTrigger("Summoning");
+    }
+
+    protected virtual void PlayBuffAnimation()
+    {
+        animator.SetTrigger("Buff");
+    }
+    #endregion
+
+
     #region Pathfinding
     /// <summary>
     /// Validates the path to the specified target tile and initiates movement if the path is valid.
@@ -216,12 +330,13 @@ public class BaseUnit : MonoBehaviour
     /// <param name="targetTile">The target tile to which the path is being checked. Must be walkable.</param>
     public virtual void CheckPath(BaseTile targetTile)
     {
+        //Making sure the target tile is walkable and not null
+        if (targetTile == null) return;
+        if (!targetTile.Walkable) return;
+
         //Getting the movement range
         List<BaseTile> movementRange = GetMovementRange();
         if (!movementRange.Contains(targetTile)) return;
-
-        //Making sure the target tile is walkable
-        if (!targetTile.Walkable) return;
 
         //Getting the path to the target tile
         List<BaseTile> path = GetPath(OccupiedTile, targetTile);
@@ -231,6 +346,7 @@ public class BaseUnit : MonoBehaviour
         MoveState = UnitState.MOVING;
         LineManager.Instance.ClearLine();
         currentPath = path;
+        TargetTile = targetTile;
     }
 
     /// <summary>
@@ -340,16 +456,14 @@ public class BaseUnit : MonoBehaviour
     /// Function for setting a tile as the new occupied tile for this unit
     /// </summary>
     /// <param name="tile"></param>
-    protected void SetNewTile(BaseTile tile)
+    protected void SetNewTile(BaseTile tile, bool isLast)
     {
         OccupiedTile.OccupiedUnit = null;
         OccupiedTile = tile;
         tile.SetUnit(this);
 
-        if (FactionType == Faction.HERO)
-        {
-            GridManager.Instance.UpdateVision();
-        }
+        if (isLast) transform.parent = tile.transform;
+        else transform.parent = null;
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -6,17 +7,20 @@ using UnityEngine;
 public class GroundTile : BaseTile
 {
     //Properties
-    public override bool Walkable => isWalkable && OccupiedUnit == null && HasMist == false;
-
     [Header("Colors")]
     [SerializeField] private Color baseColor;
     [SerializeField] private Color offsetColor;
 
     [Header("Mist")]
+    [SerializeField] private float mistFadeSeconds = 2f;
     [SerializeField] private GameObject mistGO;
+    [SerializeField] private SpriteRenderer[] mistSprites;
     public bool HasMist { get; private set; } = false;
+    public bool AwaitingMistToggle { get; private set; } = false;
 
     //Methods
+    public override bool Walkable => isWalkable && OccupiedUnit == null && HasMist == false && OccupiedChest == null;
+
     public override void Activate(ICoords coords)
     {
         base.Activate(coords);
@@ -37,14 +41,53 @@ public class GroundTile : BaseTile
 
     public void ToggleMist(bool isMisty)
     {
-        if (mistGO == null) { return; }
-
+        if (mistSprites == null || mistSprites.Length <= 0 || mistGO == null) { return; }
         HasMist = isMisty;
-        mistGO.SetActive(isMisty);
 
-        if (OccupiedUnit != null)
+        if (!isActiveAndEnabled)
         {
-            OccupiedUnit.Die();
+            AwaitingMistToggle = true;
+            return;
+        }
+
+        mistGO.gameObject.SetActive(isMisty);
+        AwaitingMistToggle = false;
+
+        if (isMisty)
+        {
+            if (OccupiedUnit != null)
+            {
+                OccupiedUnit.Die();
+            }
+            else
+            {
+                StartCoroutine(FadeInMist(mistFadeSeconds));
+            }
+        }
+    }
+
+    private IEnumerator FadeInMist(float duration)
+    {
+        float timePassed = 0f;
+        Color mistColor = mistSprites[0].color;
+
+        while (timePassed < duration)
+        {
+            timePassed += Time.deltaTime;
+            mistColor.a = Mathf.Lerp(0f, 1f, timePassed / duration);
+
+            for (int i = 0; i < mistSprites.Length; i++)
+            {
+                mistSprites[i].color = mistColor;
+            }
+
+            yield return null;
+        }
+
+        mistColor.a = 1f;
+        for (int i = 0; i < mistSprites.Length; i++)
+        {
+            mistSprites[i].color = mistColor;
         }
     }
 }

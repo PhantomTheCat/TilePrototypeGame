@@ -1,6 +1,8 @@
 using NUnit.Framework;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class UnitManager : MonoBehaviour
@@ -21,6 +23,7 @@ public class UnitManager : MonoBehaviour
 
     [HideInInspector] public List<BaseHero> Heroes { get; private set; } = new List<BaseHero>();
     [HideInInspector] public List<BaseEnemy> Enemies { get; private set; } = new List<BaseEnemy>();
+    [HideInInspector] public List<BaseEnemy> ActiveEnemies { get; private set; } = new List<BaseEnemy>();
     [HideInInspector] public List<BaseHero> DefeatedHeroes { get; private set; } = new List<BaseHero>();
 
 
@@ -38,6 +41,8 @@ public class UnitManager : MonoBehaviour
 
     public void SpawnRandomHeroes()
     {
+        BaseHero selectedHero = null;
+
         for (int i = 0; i < AmountOfHeroes; i++)
         {
             BaseHero hero = GetRandomUnit<BaseHero>(Faction.HERO);
@@ -46,7 +51,6 @@ public class UnitManager : MonoBehaviour
             //Positioning the hero on the grid
             BaseTile spawnTile = GridManager.Instance.GetHeroSpawnTile();
             spawnedHero.Activate(spawnTile);
-            spawnTile.SetUnit(spawnedHero);
 
             //Giving the hero some random actions
             GiveRandomHeroActions(spawnedHero);
@@ -55,10 +59,16 @@ public class UnitManager : MonoBehaviour
             if (i == 0)
             {
                 //Making the first spawned hero the selected hero
-                ChangeSelectedHero(spawnedHero);
+                selectedHero = spawnedHero;
             }
 
             Heroes.Add(spawnedHero);
+        }
+
+        if (selectedHero != null)
+        {
+            SelectedHero = selectedHero;
+            StartCoroutine(DelayUIChanges(selectedHero));
         }
 
         //Updating the UI with the spawned hero
@@ -75,14 +85,48 @@ public class UnitManager : MonoBehaviour
             BaseEnemy enemy = GetRandomUnit<BaseEnemy>(Faction.ENEMY);
             BaseEnemy spawnedEnemy = Instantiate(enemy);
 
-            //Positioning the hero on the grid
+            //Positioning the enemy on the grid
             BaseTile spawnTile = GridManager.Instance.GetEnemySpawnTile();
             spawnedEnemy.Activate(spawnTile);
-            spawnTile.SetUnit(spawnedEnemy);
+            Enemies.Add(spawnedEnemy);
         }
 
         //Moving to next step
         GameManager.Instance.ChangeState(GameState.HERO_TURN);
+    }
+
+    public void MoveEnemies()
+    {
+        ActiveEnemies.Clear();
+        ActiveEnemies.AddRange(Enemies.Where(e => e.VisibleToPlayer));
+        ActiveEnemies.RemoveAll(e => e.MoveState != BaseUnit.UnitState.IDLE);
+        if (ActiveEnemies.Count <= 0) GameManager.Instance.EnemyEndTurn.Invoke();
+
+        foreach (BaseEnemy enemy in ActiveEnemies)
+        {
+            enemy.TakeEnemyMovement();
+        }
+    }
+
+    public bool CheckIfEnemyTurnOver()
+    {
+        //If any enemy is still active, the turn is not over
+        foreach (BaseEnemy enemy in ActiveEnemies)
+        {
+            if (enemy.FinishedTurn == false)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void ResetEnemyTurns()
+    {
+        foreach (BaseEnemy enemy in Enemies)
+        {
+            enemy.FinishedTurn = false;
+        }
     }
 
     private void GiveRandomHeroActions(BaseHero hero)
@@ -122,6 +166,12 @@ public class UnitManager : MonoBehaviour
     {
         SelectedHero = hero;
         UIManager.Instance.UpdateSelectedHeroUI(SelectedHero);
+    }
+
+    private IEnumerator DelayUIChanges(BaseHero hero)
+    {
+        yield return new WaitForSeconds(GameManager.Instance.StartDelay);
+        ChangeSelectedHero(hero);
     }
 
     private T GetRandomUnit<T>(Faction faction) where T : BaseUnit

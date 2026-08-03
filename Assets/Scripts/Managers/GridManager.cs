@@ -58,12 +58,43 @@ public class GridManager : MonoBehaviour
 
     public BaseTile GetEnemySpawnTile()
     {
-        //TODO: Implement enemy spawn tile selection based on the current room and difficulty
+        //Search through the rooms to find an encounter room,
+        //then get a random ground tile in that room to spawn the enemy on
+        List<GroundTile> spawnTiles = new List<GroundTile>();
+
+        foreach (RoomBehavior room in rooms)
+        {
+            if (room.TypeOfRoom == RoomBehavior.RoomType.ENCOUNTER || room.TypeOfRoom == RoomBehavior.RoomType.TREASURE)
+            {
+                List<GroundTile> newTiles = room.GetEnemySpawnTiles();
+                if (newTiles == null || newTiles.Count == 0)
+                {
+                    continue;
+                }
+                spawnTiles.AddRange(newTiles);
+            }
+        }
+
+        //Get random ground tile from the list of spawn tiles
+        if (spawnTiles.Count > 0)
+        {
+            return spawnTiles.Where(t => t.Walkable).OrderBy(t => Random.value).First();
+        }
         return null;
     }
 
     public BaseTile GetTileAtPosition(Vector2Int pos) => tiles.TryGetValue(pos, out BaseTile tile) ? tile : null;
-
+    
+    /// <summary>
+    /// Used to determine what kind of things are included when getting valid tiles
+    /// </summary>
+    public enum ValidModifiers
+    {
+        WALLS = 0,
+        MIST = 1,
+        UNITS = 2,
+        USER = 3,
+    }
 
 
     #region Generation
@@ -192,7 +223,7 @@ public class GridManager : MonoBehaviour
         SpawnWalls();
 
         //Activate where the mist is before spawning heroes
-        //MistManager.Instance.ActivateMist(new List<GroundTile> { mistStartTile });
+        MistManager.Instance.ActivateMist(mistStartTile);
 
         //Notifying the GameManager that the grid has been generated
         GameManager.Instance.ChangeState(GameState.SPAWN_HEROES);
@@ -382,7 +413,6 @@ public class GridManager : MonoBehaviour
     }
     #endregion
 
-
     #region Sight and Highlighting
     /// <summary>
     /// Highlights all tiles that are walkable for the SelectedHero and within its movement range.
@@ -440,14 +470,14 @@ public class GridManager : MonoBehaviour
     /// </summary>
     /// <param name="user">Center point from</param>
     /// <param name="range">Max number of tiles to go out to</param>
-    /// <param name="withWalls">Want the list with or without walls</param>
+    /// <param name="modifiers">What we want the list to have added (Walls, Mist, Units, User, etc.)</param>
     /// <returns></returns>
-    public List<BaseTile> GetValidTiles(BaseUnit user, int range, bool withWalls, bool withUnits, bool withUser)
+    public List<BaseTile> GetValidTiles(BaseUnit user, int range, ValidModifiers[] modifiers)
     {
         List<BaseTile> validTiles = new List<BaseTile>();
 
         if (user.OccupiedTile == null) { return validTiles; }
-        if (withUser) { validTiles.Add(user.OccupiedTile); }
+        if (modifiers.Contains(ValidModifiers.USER)) { validTiles.Add(user.OccupiedTile); }
 
         for (int x = -range; x <= range; x++)
         {
@@ -456,32 +486,71 @@ public class GridManager : MonoBehaviour
                 Vector2Int tilePos = new Vector2Int(user.OccupiedTile.Coords.Pos.x + x, user.OccupiedTile.Coords.Pos.y + y);
                 BaseTile tile = GetTileAtPosition(tilePos);
 
-                if (tile != null && !validTiles.Contains(tile))
+                if (tile == null || validTiles.Contains(tile))
                 {
-                    if (withWalls)
-                    {
-                        if (tile.Walkable || tile is WallTile)
-                        {
-                            validTiles.Add(tile);
-                        }
-                    }
-                    else if (tile.Walkable || tile.OccupiedChest != null)
+                    continue;
+                }
+
+                if (modifiers.Contains(ValidModifiers.MIST) && tile is GroundTile)
+                {
+                    GroundTile groundTile = (GroundTile)tile;
+                    if (groundTile.HasMist) validTiles.Add(tile);
+                }
+
+                if (modifiers.Contains(ValidModifiers.WALLS))
+                {
+                    if (tile.Walkable || tile is WallTile)
                     {
                         validTiles.Add(tile);
                     }
-                    else if (tile.OccupiedUnit != null && withUnits)
-                    {
-                        if (!withUser && tile == user.OccupiedTile)
-                        {
-                            continue;
-                        }
-                        validTiles.Add(tile);
-                    }
+                }
+                else if (tile.Walkable || tile.OccupiedChest != null)
+                {
+                    validTiles.Add(tile);
+                }
+                else if (modifiers.Contains(ValidModifiers.UNITS))
+                {
+                    if (tile.OccupiedUnit == null) continue;
+                    if (modifiers.Contains(ValidModifiers.USER) && tile == user.OccupiedTile) continue;
+                    validTiles.Add(tile);
                 }
             }
         }
 
         return validTiles;
+    }
+
+    public void PrepareMinimapSnapshot(int distanceToInclude)
+    {
+        //Set all rooms active for sighting
+        foreach (RoomBehavior room in rooms)
+        {
+            room.gameObject.SetActive(true);
+        }
+
+        BaseTile heroTile = UnitManager.Instance.SelectedHero.OccupiedTile;
+        List<BaseTile> values = tiles.Values.ToList();
+        List<BaseTile> checkTiles = values.Where(e => e.GetDistance(heroTile) <= distanceToInclude).ToList(); 
+
+        foreach (BaseTile tile in checkTiles)
+        {
+            if (tile.IsExplored)
+            {
+                tile.gameObject.SetActive(true);
+            }
+            else
+            {
+                tile.gameObject.SetActive(false);
+            }
+        }
+
+        foreach (RoomBehavior room in rooms)
+        {
+            if (!room.CheckIfExplored())
+            {
+                room.gameObject.SetActive(false);
+            }
+        }
     }
 
     public void UpdateVision()
@@ -501,11 +570,31 @@ public class GridManager : MonoBehaviour
             {
                 tile.gameObject.SetActive(true);
                 tile.IsVisible = true;
+                tile.IsExplored = true;
+
+                if (tile is GroundTile)
+                {
+                    GroundTile ground = (GroundTile)tile;
+                    if (ground.AwaitingMistToggle) ground.ToggleMist(true);
+                }
             }
             else            
             {
                 tile.gameObject.SetActive(false);
                 tile.IsVisible = false;
+            }
+        }
+
+        foreach (BaseEnemy enemy in UnitManager.Instance.Enemies)
+        {
+            if (enemy.OccupiedTile == null) { continue; }
+            if (visibleTiles.Contains(enemy.OccupiedTile))
+            {
+                enemy.VisibleToPlayer = true;
+            }
+            else
+            {
+                enemy.VisibleToPlayer = false;
             }
         }
 
@@ -535,7 +624,8 @@ public class GridManager : MonoBehaviour
 
         foreach (BaseHero hero in heroes)
         {
-            List<BaseTile> checkTiles = GetValidTiles(hero, hero.ViewRange, false, false, true);
+            ValidModifiers[] modifiers = new ValidModifiers[] { ValidModifiers.MIST, ValidModifiers.UNITS, ValidModifiers.USER};
+            List<BaseTile> checkTiles = GetValidTiles(hero, hero.ViewRange, modifiers);
 
             //Want to only check tiles within a certain distance from the hero to optimize performance
             foreach (BaseTile tile in checkTiles)
@@ -556,7 +646,7 @@ public class GridManager : MonoBehaviour
                 {
                     Vector2Int neighborPos = hero.OccupiedTile.Coords.Pos + dir;
                     BaseTile neighborTile = GetTileAtPosition(neighborPos);
-                    if (neighborTile == null || !neighborTile.Walkable) { continue; }
+                    if (neighborTile == null) { continue; }
 
                     float neighborDistance = Vector3.Distance(neighborTile.transform.position, tile.transform.position);
                     Vector3 neighborDirection = (tile.transform.position - neighborTile.transform.position);
@@ -636,6 +726,16 @@ public class GridManager : MonoBehaviour
     {
         List<BaseTile> validTiles = new List<BaseTile>();
         validTiles.Add(center);
+
+        Vector2Int direction = center.Coords.Pos - unit.OccupiedTile.Coords.Pos;
+
+        //Swapping the hor and vert sizes if the direction is left or right, so the rectangle is oriented correctly
+        if (direction == Vector2.right || direction == Vector2.left)
+        {
+            int temp = horSize;
+            horSize = vertSize;
+            vertSize = temp;
+        }
 
         for (int x = -horSize; x <= horSize; x++)
         {

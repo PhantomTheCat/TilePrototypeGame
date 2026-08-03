@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// Class that manages the overall game state and flow.
@@ -7,12 +9,23 @@ public class GameManager : MonoBehaviour
 {
     //Properties
     public static GameManager Instance;
-    public GameState GameState;
+    [HideInInspector] public GameState GameState;
+    [HideInInspector] public UnityEvent EnemyEndTurn = new UnityEvent();
+    private bool enemyTurnEnded = false;
+
+    [Header("Game Settings")]
+    [Range(10, 120)]public int FrameRateCap = 60;
+    public float TransitionDelay = 1.5f;
+    public float StartDelay = 0.1f;
 
     //Methods
     private void Awake()
     {
         Instance = this;
+        Application.targetFrameRate = FrameRateCap;
+
+        //Add listener for the EnemyEndTurn event to handle the end of the enemy's turn.
+        EnemyEndTurn.AddListener(TriggerEndEnemyTurn);
     }
 
     private void Start()
@@ -62,11 +75,10 @@ public class GameManager : MonoBehaviour
 
     private void StartEnemyTurn()
     {
+        enemyTurnEnded = false;
         GridManager.Instance.ClearAllHighlights();
         UIManager.Instance.UpdateTurnIndicator(GameState.ENEMY_TURN);
-
-        //TODO: Implement references to enemy AI and trigger their actions here, for now we wait a few seconds and then end the turn
-        Invoke(nameof(EndEnemyTurn), 2f);
+        UnitManager.Instance.MoveEnemies();
     }
 
     private void StartMistTurn()
@@ -74,18 +86,31 @@ public class GameManager : MonoBehaviour
         UIManager.Instance.UpdateTurnIndicator(GameState.MIST_TURN);
 
         MistManager.Instance.SpreadMist();
-
-        EndMistTurn();
+        StartCoroutine(EndMistTurn()); 
     }
 
-    private void EndEnemyTurn()
+    private void TriggerEndEnemyTurn()
     {
-        //TODO: Remove this method once enemy AI is implemented and instead call ChangeState(GameState.MIST_TURN) at the end of the enemy AI's turn.
+        if (enemyTurnEnded) return;
+        if (UnitManager.Instance.CheckIfEnemyTurnOver())
+        {
+            enemyTurnEnded = true;
+            UnitManager.Instance.ResetEnemyTurns();
+            StartCoroutine(EndEnemyTurn());
+        }
+    }
+
+    private IEnumerator EndEnemyTurn()
+    {
+        yield return new WaitForSeconds(TransitionDelay);
+
         ChangeState(GameState.MIST_TURN);
     }
 
-    private void EndMistTurn()
+    private IEnumerator EndMistTurn()
     {
+        yield return new WaitForSeconds(TransitionDelay);
+
         ChangeState(GameState.HERO_TURN);
     }
 }

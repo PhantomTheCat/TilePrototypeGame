@@ -47,6 +47,7 @@ MonoBehaviour:
   ActionType: 0
   ScalingAttribute: 8
   AreaShape: 1
+  TypeOfRange: 1
   Range: 5
   HorizontalArea: 2
   VerticalArea: 1
@@ -55,5 +56,4 @@ MonoBehaviour:
   ActionDescription: Deals 20 + INT to units within an area
   ToolbarImage: {fileID: 2109095544, guid: 13776310fb75e834f8ee8a10cb18d9f4, type: 3}
   DamageAmount: 20
-  RangeType: 1
   TypeOfDamage: 1

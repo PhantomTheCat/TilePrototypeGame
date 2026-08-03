@@ -39,7 +39,7 @@ public class InventorySlot : MonoBehaviour, IDropHandler
         else
         {
             //Unequip the item, if not even equipped, the script will not do anything
-            dragItem.HeroTied.UnequipItem(dragItem.ItemData, slotIndex);
+            if (dragItem.HeroTied != null) dragItem.HeroTied.UnequipItem(dragItem.ItemData, slotIndex);
             dragItem.ParentAfterDrag = this.transform;
         }
     }

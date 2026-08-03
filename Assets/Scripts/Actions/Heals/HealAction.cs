@@ -1,5 +1,7 @@
+using NUnit.Framework;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class HealAction : BaseAction
 {
@@ -13,13 +15,21 @@ public class HealAction : BaseAction
         ActionDescription = $"Heals target for {healingAmount} + {ScalingAttribute}";
     }
 
-    public override void Execute(BaseUnit user, BaseUnit target)
+    public override void Execute(BaseUnit user, List<BaseTile> targetTiles)
     {
-        base.Execute(user, target);
-        if (target == null || user == null) return;
+        base.Execute(user, targetTiles);
+        if (targetTiles == null || user == null) return;
 
-        int scaling = GetScalingAttribute(user);
-        int amountOfHealing = healingAmount + scaling;
-        target.Heal(amountOfHealing);
+        foreach (BaseTile tile in targetTiles)
+        {
+            if (tile.OccupiedUnit != null)
+            {
+                BaseUnit target = tile.OccupiedUnit;
+
+                int scaling = GetScalingAttribute(user);
+                int amountOfHealing = healingAmount + scaling;
+                target.Heal(amountOfHealing);
+            }
+        }
     }
 }

@@ -47,6 +47,7 @@ MonoBehaviour:
   ActionType: 0
   ScalingAttribute: 5
   AreaShape: 0
+  TypeOfRange: 1
   Range: 5
   HorizontalArea: 1
   VerticalArea: 1
@@ -55,5 +56,4 @@ MonoBehaviour:
   ActionDescription: Shoot 1 target for 5 + DEX
   ToolbarImage: {fileID: 21300000, guid: 5f554e9561749d14ea16b1f4b5ae2d92, type: 3}
   DamageAmount: 5
-  RangeType: 1
   TypeOfDamage: 0

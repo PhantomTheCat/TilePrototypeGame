@@ -85,6 +85,7 @@ public class UIManager : MonoBehaviour
 
     public void UpdateSelectedHeroUI(BaseHero hero)
     {
+        MinimapManager.Instance.TakePicture();
         CameraManager.Instance.UpdateCameraParent(hero.transform);
         selectedHeroText.text = hero != null ? $"{hero.UnitName}" : "N/A";
         GridManager.Instance.HighlightHeroTiles();

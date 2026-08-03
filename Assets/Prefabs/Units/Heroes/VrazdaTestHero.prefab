@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4481223443168622857}
   - component: {fileID: 4895217231972124905}
   - component: {fileID: 5196222691538757306}
+  - component: {fileID: 2753040344121690877}
   m_Layer: 0
   m_Name: VrazdaTestHero
   m_TagString: Untagged
@@ -80,7 +81,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 5
   m_MaskInteraction: 0
   m_Sprite: {fileID: -2006864905, guid: e445a13b51ef73144a3b01ae49919503, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -108,10 +109,24 @@ MonoBehaviour:
   UnitName: Vrazda
   MoveState: 0
   UnitPortrait: {fileID: 21300000, guid: d5ab1c56c3ae0d345a2b4d4cc52d3429, type: 3}
+  InteractableRange: 1
   MoveRange: 5
-  MaxHealth: 100
-  CurrentHealth: 100
   ViewRange: 30
+  MaxHealth: 100
+  MaxMana: 50
+  MaxActionPoint: 5
+  Level: 1
+  MoveRangeLeft: 5
+  CurrentHealth: 100
+  CurrentMana: 50
+  CurrentActionPoint: 5
+  Strength: 1
+  Dexterity: 1
+  Constitution: 1
+  Faith: 1
+  Intelligence: 1
+  CritChance: 5
+  CritMultiplier: 2
   OccupiedTile: {fileID: 0}
   moveSpeed: 5
   Actions: []
@@ -131,3 +146,25 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
+--- !u!95 &2753040344121690877
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8607145334256200167}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 25bc7ea58445f4c4e990aa4f4d0b3cc9, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

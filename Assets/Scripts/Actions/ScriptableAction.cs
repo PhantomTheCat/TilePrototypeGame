@@ -13,7 +13,10 @@ public class ScriptableAction : ScriptableObject
 
 public enum ActionType
 {
-    ATTACK = 0,
-    UTILITY = 1,
-    USEOBJECT = 2
+    MELEE_ATTACK = 0,
+    RANGE_ATTACK = 1,
+    SPELL_ATTACK = 2,
+    HEAL = 3,
+    SUMMON = 4,
+    BUFF = 5,
 }
