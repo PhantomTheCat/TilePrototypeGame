@@ -166,7 +166,7 @@ MonoBehaviour:
   spellAttackAnimCount: 1
   DropRarity: 2
   Style: 1
-  preferenceValue: 5
+  preferenceValue: 2
   preferredActions: 04000000
   TargetHero: {fileID: 0}
   FinishedTurn: 0

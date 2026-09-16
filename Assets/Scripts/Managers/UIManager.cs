@@ -64,6 +64,9 @@ public class UIManager : MonoBehaviour
     [Header("UI Chest")]
     [SerializeField] private UIChestBehavior chestScreen;
 
+    [Header("Damage Popups")]
+    public DamagePopup DamagePopupPrefab;
+
 
     //Methods
     private void Awake()

@@ -10,13 +10,6 @@ public class AttackAction : BaseAction
     public int DamageAmount = 1;
     public DamageType TypeOfDamage;
 
-    public enum DamageType
-    {
-        PHYSICAL = 0,
-        FIRE = 1,
-        ICE = 2,
-    }
-
     //Methods
     public override void Execute(BaseUnit attacker, List<BaseTile> targetTiles)
     {
@@ -34,8 +27,33 @@ public class AttackAction : BaseAction
                 // Apply damage to the target unit
                 int scaling = GetScalingAttribute(attacker);
                 int damage = DamageAmount + scaling;
-                target.TakeDamage(damage);
+                bool isCrit = SeeIfCrit(attacker);
+                if (isCrit)
+                {
+                    damage *= attacker.CritMultiplier;
+                }
+                target.TakeDamage(damage, isCrit);
             }
         }
     }
+
+    public bool SeeIfCrit(BaseUnit attacker)
+    {
+        if (attacker == null) return false;
+        float critChance = attacker.CritChance;
+        float roll = Random.Range(0f, 100f);
+        return roll <= critChance;
+    }
+}
+
+public enum DamageType
+{
+    PHYSICAL = 0,
+    FIRE = 1,
+    ICE = 2,
+    THUNDER = 3,
+    POISON = 4,
+    LIGHT = 5,
+    BLOOD = 6,
+    DARK = 7,
 }

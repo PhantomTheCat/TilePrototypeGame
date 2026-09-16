@@ -9,7 +9,7 @@ public class BaseItem : MonoBehaviour
     [Header("General")]
     public string ItemName;
     public Sprite ItemIcon;
-    public string Description;
+    [TextArea(3, 10)] public string Description;
     public int GoldValue;
     public ItemType Type;
     public Rarity Rarity;

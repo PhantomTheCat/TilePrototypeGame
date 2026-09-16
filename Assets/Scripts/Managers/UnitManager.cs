@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +19,8 @@ public class UnitManager : MonoBehaviour
 
     [Header("Character Creation Settings")]
     [SerializeField] private int StartingActionsPerHero = 1;
+    [Range(1, 5)][SerializeField] private int MaxPerkTreesPerHero = 5;
+    [Range(1, 5)][SerializeField] private int MaxPerksPerTree = 5;
 
     [HideInInspector] public List<BaseHero> Heroes { get; private set; } = new List<BaseHero>();
     [HideInInspector] public List<BaseEnemy> Enemies { get; private set; } = new List<BaseEnemy>();
@@ -63,6 +64,7 @@ public class UnitManager : MonoBehaviour
             }
 
             Heroes.Add(spawnedHero);
+            spawnedHero.PerkTrees = spawnedHero.GetPerkTrees(MaxPerkTreesPerHero, MaxPerksPerTree);
         }
 
         if (selectedHero != null)
@@ -127,6 +129,28 @@ public class UnitManager : MonoBehaviour
         {
             enemy.FinishedTurn = false;
         }
+    }
+
+    /// <summary>
+    /// Returns if a tile is on the path of any active enemy for spawning and more
+    /// </summary>
+    /// <param name="tile"></param>
+    /// <returns></returns>
+    public bool IsOnEnemyPath(BaseTile tile)
+    {
+        bool onEnemyPath = false;
+        if (ActiveEnemies == null) return onEnemyPath;
+
+        foreach (BaseEnemy enemy in ActiveEnemies)
+        {
+            List<BaseTile> enemyPath = enemy.ReturnPathOn();
+            if (enemyPath == null || enemyPath.Count == 0) continue;
+            if (enemy.ReturnPathOn().Contains(tile))
+            {
+                onEnemyPath = true;
+            }
+        }
+        return onEnemyPath;
     }
 
     private void GiveRandomHeroActions(BaseHero hero)

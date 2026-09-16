@@ -9,6 +9,8 @@ public class BaseAction : MonoBehaviour
     [Header("General")]
     public ActionType ActionType;
     public AffectableStat ScalingAttribute;
+    public int ActionCost = 1;
+    public int ManaCost = 5;
 
     [Header("Area and Range")]
     public AreaType AreaShape;
@@ -22,7 +24,7 @@ public class BaseAction : MonoBehaviour
 
     [Header("Action Info")]
     public string ActionName;
-    public string ActionDescription;
+    [TextArea(3, 10)] public string ActionDescription;
 
     [Header("Action UI")]
     public Sprite ToolbarImage;

@@ -107,6 +107,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   FactionType: 0
   UnitName: Ash
+  Healthbar: {fileID: 0}
   MoveState: 0
   UnitPortrait: {fileID: 21300000, guid: f0ef330a2d1d14842b6b97a9d109cc63, type: 3}
   InteractableRange: 1
@@ -115,7 +116,7 @@ MonoBehaviour:
   MaxHealth: 100
   MaxMana: 50
   MaxActionPoint: 5
-  Level: 1
+  UnitLevel: 1
   MoveRangeLeft: 5
   CurrentHealth: 100
   CurrentMana: 50
@@ -128,11 +129,15 @@ MonoBehaviour:
   CritChance: 5
   CritMultiplier: 2
   OccupiedTile: {fileID: 0}
+  TargetTile: {fileID: 0}
   moveSpeed: 5
   Actions: []
   CurrentAction: {fileID: 0}
   Inventory: []
   InventorySize: 25
+  meleeAttackAnimCount: 1
+  rangedAttackAnimCount: 1
+  spellAttackAnimCount: 1
   Helmet: {fileID: 0}
   Armor: {fileID: 0}
   Boots: {fileID: 0}
@@ -146,6 +151,10 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
+  TotalExperience: 0
+  CurrentExperience: 0
+  ExpToNextLevel: 100
+  PerkPoints: 2
 --- !u!95 &9077083359901502794
 Animator:
   serializedVersion: 7

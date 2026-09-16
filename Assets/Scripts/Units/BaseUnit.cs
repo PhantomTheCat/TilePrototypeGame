@@ -24,7 +24,7 @@ public class BaseUnit : MonoBehaviour
     public int MaxHealth = 100;
     public int MaxMana = 50;
     public int MaxActionPoint = 5;
-    public int Level = 1;
+    public int UnitLevel = 1;
     [HideInInspector] public int MoveRangeLeft = 5;
     [HideInInspector] public int CurrentHealth = 100;
     [HideInInspector] public int CurrentMana = 50;
@@ -135,10 +135,11 @@ public class BaseUnit : MonoBehaviour
         transform.parent = spawnTile.transform;
     }
 
-    public virtual void TakeDamage(int damage)
+    public virtual void TakeDamage(int damage, bool isCrit)
     {
         CurrentHealth = Mathf.Max(CurrentHealth - damage, 0);
         if (Healthbar != null) Healthbar.UpdateBar();
+        DamagePopup.Create(transform.position, damage, isCrit);
 
         if (CurrentHealth <= 0)
         {
@@ -174,6 +175,8 @@ public class BaseUnit : MonoBehaviour
         gameObject.SetActive(true);
         if (Healthbar != null) Healthbar.UpdateBar();
     }
+
+    public List<BaseTile> ReturnPathOn() { return currentPath; }
 
     public void SetActions(List<BaseAction> newActions)
     {

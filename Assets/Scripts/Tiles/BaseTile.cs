@@ -173,19 +173,34 @@ public abstract class BaseTile : MonoBehaviour, IPointerEnterHandler, IPointerEx
         }
     }
 
-    public void ActivateEffect(AttackAction.DamageType damageType)
+    public void ActivateEffect(DamageType damageType)
     {
         if (effectAnimator == null) return;
         switch (damageType)
         {
-            case AttackAction.DamageType.PHYSICAL:
+            case DamageType.PHYSICAL:
                 effectAnimator.SetTrigger("PhysicalTrigger");
                 break;
-            case AttackAction.DamageType.FIRE:
+            case DamageType.FIRE:
                 effectAnimator.SetTrigger("FireTrigger");
                 break;
-            case AttackAction.DamageType.ICE:
+            case DamageType.ICE:
                 effectAnimator.SetTrigger("IceTrigger");
+                break;
+            case DamageType.THUNDER:
+                effectAnimator.SetTrigger("ThunderTrigger");
+                break;
+            case DamageType.POISON:
+                effectAnimator.SetTrigger("PoisonTrigger");
+                break;
+            case DamageType.LIGHT:
+                effectAnimator.SetTrigger("LightTrigger");
+                break;
+            case DamageType.BLOOD:
+                effectAnimator.SetTrigger("BloodTrigger");
+                break;
+            case DamageType.DARK:
+                effectAnimator.SetTrigger("DarkTrigger");
                 break;
             default:
                 break;

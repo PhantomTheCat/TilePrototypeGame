@@ -12,7 +12,7 @@ public class BaseEnemy : BaseUnit
     [Header("Enemy AI")]
     public Rarity DropRarity;
     public EnemyStyle Style;
-    [SerializeField] protected int preferenceValue = 5;
+    [SerializeField] protected int preferenceValue = 2;
     [SerializeField] protected ActionType[] preferredActions;
     [HideInInspector] public BaseHero TargetHero;
     [HideInInspector] public bool FinishedTurn = false;
@@ -380,9 +380,14 @@ public class BaseEnemy : BaseUnit
             if (type == ActionType.MELEE_ATTACK || type == ActionType.RANGE_ATTACK || type == ActionType.SPELL_ATTACK)
             {
                 //Seeing if within range
-                if (OccupiedTile.GetDistance(TargetHero.OccupiedTile) <= action.Range)
+                float distance = OccupiedTile.GetDistance(TargetHero.OccupiedTile);
+                if (distance <= action.Range)
                 {
-                    if (preferredActions.Contains(type))
+                    if (distance < engageDistance)
+                    {
+                        appblicableActions.Add(action, preferenceValue);
+                    }
+                    else if (preferredActions.Contains(type))
                     {
                         appblicableActions.Add(action, preferenceValue);
                     }

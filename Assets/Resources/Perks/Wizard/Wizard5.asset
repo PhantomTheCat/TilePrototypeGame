@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffca117bc12be684395fc0cbc52aa65a, type: 3}
+  m_Name: Wizard5
+  m_EditorClassIdentifier: Assembly-CSharp::ScriptablePerk
+  Perk: {fileID: 211042853828183055, guid: 008ea3324e80a974e8c82b2806e98e6a, type: 3}

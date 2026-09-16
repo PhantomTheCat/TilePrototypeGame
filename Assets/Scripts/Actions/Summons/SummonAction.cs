@@ -38,6 +38,7 @@ public class SummonAction : BaseAction
     {
         if (unit == null || spawnTile == null) return;
         if (!spawnTile.Walkable) return;
+        if (UnitManager.Instance.IsOnEnemyPath(spawnTile)) return;
 
         BaseUnit newUnit = Instantiate(unit);
         if (newUnit.FactionType == Faction.ENEMY)

@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -21,6 +22,13 @@ public class BaseHero : BaseUnit
     [HideInInspector] public BaseItem[] Consumables = new BaseItem[4];
     private List<BaseItem> equippedItems = new List<BaseItem>();
 
+    [HideInInspector] public int TotalExperience = 0;
+    [HideInInspector] public int CurrentExperience = 0;
+    [HideInInspector] public int ExpToNextLevel = 100;
+
+    [Header("Perk Points")]
+    public int PerkPoints = 2;
+    [HideInInspector] public PerkTree[] PerkTrees;
 
 
     //Methods
@@ -34,9 +42,9 @@ public class BaseHero : BaseUnit
         }
     }
 
-    public override void TakeDamage(int damage)
+    public override void TakeDamage(int damage, bool isCrit)
     {
-        base.TakeDamage(damage);
+        base.TakeDamage(damage, isCrit);
         UIManager.Instance.UpdateCharacterButtons();
     }
 
@@ -67,13 +75,66 @@ public class BaseHero : BaseUnit
         UnitManager.Instance.Heroes.Add(this);
     }
 
+    public virtual void AddExperience(int amount)
+    {
+        TotalExperience += amount;
+        CurrentExperience += amount;
+
+        if (CurrentExperience >= ExpToNextLevel)
+        {
+            LevelUp();
+        }
+    }
+
+    public virtual void LevelUp()
+    {
+        CurrentExperience -= ExpToNextLevel;
+        ExpToNextLevel = Mathf.RoundToInt(ExpToNextLevel * 1.5f);
+        PerkPoints++;
+        UnitLevel++;
+        UIManager.Instance.UpdateCharacterButtons();
+    }
+
+    public virtual PerkTree[] GetPerkTrees(int maxPerkTrees, int maxPerksPerTree)
+    {
+        //Getting unique perk trees for the hero
+        List<PerkType> perkTreesGotten = new List<PerkType>();
+        PerkType[] perkTypes = (PerkType[])System.Enum.GetValues(typeof(PerkType));
+        PerkTree[] perkTrees = new PerkTree[maxPerkTrees];
+
+        for (int i = 0; i < maxPerkTrees; i++)
+        {
+            GameObject treeParent = Instantiate(new GameObject("PerkTree_" + i), transform);
+            PerkType perkTree = PerkType.GENERAL;
+            //Randomly select a perk tree that the hero doesn't already have
+            while (perkTreesGotten.Contains(perkTree))
+            {
+                perkTree = perkTypes[Random.Range(0, perkTypes.Length)];
+            }
+            perkTreesGotten.Add(perkTree);
+
+            //Make a new perk tree for the hero
+            PerkTree newPerkTree = new PerkTree(perkTree, maxPerksPerTree);
+            perkTrees[i] = newPerkTree;
+
+            foreach (BasePerk perk in newPerkTree.PerkPrefabs)
+            {
+                BasePerk perkGO = Instantiate(perk, treeParent.transform);
+                perkGO.Activate();
+                newPerkTree.Perks.Add(perkGO);
+            }
+        }
+
+        return perkTrees;
+    }
+
     /// <summary>
     /// Logic for equipping an item to the hero. Slot index is only relevant for trinkets and consumables, which have multiple slots.
     /// </summary>
     /// <param name="item">The item to equip.</param>
     /// <param name="itemType">The type of the item.</param>
     /// <param name="slotIndex">The slot index for items with multiple slots (trinkets and consumables), starting with 0.</param>
-    public void EquipItem(BaseItem item, int slotIndex)
+    public virtual void EquipItem(BaseItem item, int slotIndex)
     {
         bool successfullyEquipped = false;
         BaseItem prevItem = null;
@@ -160,7 +221,7 @@ public class BaseHero : BaseUnit
         }
     }
 
-    public void UnequipItem(BaseItem item, int slotIndex)
+    public virtual void UnequipItem(BaseItem item, int slotIndex)
     {
         //Check to see if item is equipped
         if (item == null) return;
@@ -215,8 +276,4 @@ public class BaseHero : BaseUnit
                 break;
         }
     }
-
-
-    //TODO: Implement movement, attack, and other hero-specific behaviors
-    //TODO: Add inventory selection and management
 }
